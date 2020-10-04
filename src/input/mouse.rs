@@ -51,6 +51,8 @@ impl Mouse {
     }
 
     pub fn update(&mut self) {
+        self.swap_buffers();
+
         let mut x = 0;
         let mut y = 0;
 
@@ -80,7 +82,7 @@ impl Mouse {
         self.mouses.b = snapshot;
     }
 
-    pub fn on_end_frame(&mut self) {
+    fn swap_buffers(&mut self) {
         self.mouses.a = self.mouses.b.clone();
         self.wheels.a = self.wheels.b.clone();
     }

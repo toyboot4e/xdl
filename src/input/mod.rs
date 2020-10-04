@@ -30,11 +30,7 @@ impl Input {
     }
 
     pub fn update(&mut self) {
+        self.kbd.update();
         self.mouse.update();
-    }
-
-    pub fn on_end_frame(&mut self) {
-        self.kbd.on_end_frame();
-        self.mouse.on_end_frame();
     }
 }
