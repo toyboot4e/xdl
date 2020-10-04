@@ -1,15 +1,18 @@
 //! XDL: An extension layer to Rust-SDL2
 //!
+//! Port of FNA input module + Virtual input.
+//!
 //! Intended for games with orghogonal grid maps.
 //!
-//! # Contents
+//! # Getting started
 //!
-//! * Port of FNA input module
-//! * Virtual input
+//! Create [`Input`] with raw SDL window and manage their lifecycle.
+//!
+//! See [`vi`] module for virtual input.
 //!
 //! # WIP
 //!
-//! * done: keyboard input
+//! * WIP: keyboard input (key repeat?)
 //! * WIP: mouse input
 //! * not started: touch input
 
@@ -61,5 +64,10 @@ impl Input {
 
     pub fn update(&mut self) {
         self.mouse.update();
+    }
+
+    pub fn on_end_frame(&mut self) {
+        self.kbd.on_end_frame();
+        self.mouse.on_end_frame();
     }
 }

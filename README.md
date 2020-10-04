@@ -2,12 +2,9 @@
 
 An extension layer to Rust-SDL2
 
+Port of FNA input module + Virtual input
+
 Intended for games with orghogonal grid maps.
-
-# Contents
-
-* Port of FNA input module
-* Virtual input
 
 # WIP
 

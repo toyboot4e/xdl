@@ -80,7 +80,7 @@ impl Mouse {
         self.mouses.b = snapshot;
     }
 
-    fn on_end_frame(&mut self) {
+    pub fn on_end_frame(&mut self) {
         self.mouses.a = self.mouses.b.clone();
         self.wheels.a = self.wheels.b.clone();
     }
