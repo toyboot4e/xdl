@@ -181,7 +181,7 @@ pub enum Key {
     OemEnlW = 0xf4,
 }
 
-/// All of the mouse state
+/// All of the mouse states
 #[derive(Debug, Clone)]
 pub struct Keyboard {
     /// SDL2 keycode to XDL keycode

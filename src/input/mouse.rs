@@ -6,7 +6,7 @@ use sdl2::event::Event;
 
 use crate::utils::Double;
 
-/// All of the mouse state
+/// All of the mouse states
 #[derive(Debug, Clone)]
 pub struct Mouse {
     window: *mut sdl2::sys::SDL_Window,
