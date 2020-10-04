@@ -1,4 +1,4 @@
-//! XDL: An extension layer to Rust-SDL2
+//! XDL: An extensional input layer on top of Rust-SDL2
 //!
 //! Port of FNA input module + Virtual input.
 //!

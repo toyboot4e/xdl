@@ -23,6 +23,12 @@
 //! use xdl::Key;
 //! use xdl::vi::{AxisButton, Button, DirButton, InputBundle, KeyRepeat};
 //!
+//!
+//!  let repeat = KeyRepeat::Repeat {
+//!      first: Duration::new(0, 16666666) * 8,
+//!      multi: Duration::new(0, 16666666) * 6,
+//!  };
+//!
 //! let dir = DirButton {
 //!     x: AxisButton {
 //!         pos: Button::new(
@@ -30,14 +36,14 @@
 //!                 keys: vec![Key::D, Key::Right],
 //!                 mouse: vec![],
 //!             },
-//!             KeyRepeat::None,
+//!             repeat,
 //!         ),
 //!         neg: Button::new(
 //!             InputBundle {
 //!                 keys: vec![Key::A, Key::Left],
 //!                 mouse: vec![],
 //!             },
-//!             KeyRepeat::None,
+//!             repeat,
 //!         ),
 //!     },
 //!     y: AxisButton {
@@ -46,14 +52,14 @@
 //!                 keys: vec![Key::S, Key::Down],
 //!                 mouse: vec![],
 //!             },
-//!             KeyRepeat::None,
+//!             repeat,
 //!         ),
 //!         neg: Button::new(
 //!             InputBundle {
 //!                 keys: vec![Key::W, Key::Up],
 //!                 mouse: vec![],
 //!             },
-//!             KeyRepeat::None,
+//!             repeat,
 //!         ),
 //!     },
 //! };
@@ -71,7 +77,7 @@ use crate::{
 // Key repeat, button state and input bundle
 
 /// Key repeat settings
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum KeyRepeat {
     Repeat { first: Duration, multi: Duration },
     None,
@@ -128,13 +134,14 @@ impl KeyRepeatState {
 
                 self.accum_repeat += delta;
                 self.accum_down += delta;
-                self.is_on_first_repeat = false;
 
                 let mut repeat = false;
 
                 // basically it's just an if branch but in case too long time passed
                 while self.accum_repeat > target {
                     repeat = true;
+                    self.is_on_first_repeat = false;
+
                     self.accum_repeat -= target;
                 }
 
