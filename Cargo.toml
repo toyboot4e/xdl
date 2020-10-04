@@ -3,9 +3,14 @@ name = "xdl"
 version = "0.1.0"
 authors = ["toyboot4e <toyboot4e@gmail.com>"]
 edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+license = "MIT"
+description = "An entension layer to Rust-SDL2"
+# homepage
+# documentation
+repository = "https://github.com/toyboot4e/xdl"
+# readme
 
 [dependencies]
+# TODO: use semvar
 sdl2 = "0.34.3"
 num_enum = "0.5.1"
