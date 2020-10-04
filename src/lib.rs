@@ -28,10 +28,7 @@ use sdl2::event::Event;
 pub use keyboard::{Key, Keyboard};
 pub use mouse::{Mouse, MouseInput};
 
-/// Contains all the input states
-///
-/// * TODO: mouse position with scale
-/// * TODO: touch input
+/// All of the input state
 #[derive(Debug, Clone)]
 pub struct Input {
     pub kbd: Keyboard,

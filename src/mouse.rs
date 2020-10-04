@@ -6,7 +6,7 @@ use sdl2::event::Event;
 
 use crate::utils::Double;
 
-/// Full-featured mouse state. Updated via [`AnfLifecycle`]
+/// All of the mouse state
 #[derive(Debug, Clone)]
 pub struct Mouse {
     window: *mut sdl2::sys::SDL_Window,
@@ -16,7 +16,7 @@ pub struct Mouse {
     wheels: Double<i32>,
 }
 
-/// Used to query [`Mouse`] state
+/// XDL mouse input code
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u32)]
 pub enum MouseInput {

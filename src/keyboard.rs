@@ -11,7 +11,7 @@ pub use sdl2::{
 
 use crate::utils::Double;
 
-/// Used to query [`Keyboard`] state
+/// XDL keycode
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, TryFromPrimitive)]
 #[repr(u32)]
 pub enum Key {
@@ -181,10 +181,10 @@ pub enum Key {
     OemEnlW = 0xf4,
 }
 
-/// Full-featured mouse state. Updated via [`AnfLifecycle`]
+/// All of the mouse state
 #[derive(Debug, Clone)]
 pub struct Keyboard {
-    /// SDL2 keycode to ANF keycode
+    /// SDL2 keycode to XDL keycode
     s2f: HashMap<Keycode, Key>,
     kbd: Double<KeyboardStateSnapshot>,
 }
@@ -263,19 +263,19 @@ impl Keyboard {
 
 impl Keyboard {
     fn on_key_down(&mut self, sdl_key: Keycode) {
-        let anf_key = match self.s2f.get(&sdl_key) {
+        let xdl_key = match self.s2f.get(&sdl_key) {
             Some(key) => key.clone(),
             None => return,
         };
-        self.kbd.a.on_key_down(anf_key);
+        self.kbd.a.on_key_down(xdl_key);
     }
 
     fn on_key_up(&mut self, sdl_key: Keycode) {
-        let anf_key = match self.s2f.get(&sdl_key) {
+        let xdl_key = match self.s2f.get(&sdl_key) {
             Some(key) => key.clone(),
             None => return,
         };
-        self.kbd.a.on_key_up(anf_key);
+        self.kbd.a.on_key_up(xdl_key);
     }
 }
 
@@ -283,7 +283,7 @@ impl Keyboard {
 ///
 /// Compare two snapshots to see if the key is pressed or released.
 ///
-/// Based on: http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
+/// Based on: http://graphics.stxdlord.edu/~seander/bithacks.html#CountBitsSetParallel
 #[derive(Debug, Clone, Default)]
 pub struct KeyboardStateSnapshot {
     pub bits: [u32; 8],
@@ -339,7 +339,7 @@ impl KeyboardStateSnapshot {
 }
 
 impl KeyboardStateSnapshot {
-    /// http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
+    /// http://graphics.stxdlord.edu/~seander/bithacks.html#CountBitsSetParallel
     fn count_bits(key: u32) -> u32 {
         let mut v = key as u32;
         v = v - ((v >> 1) & 0x55555555);

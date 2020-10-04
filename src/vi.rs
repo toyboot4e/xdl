@@ -1,23 +1,64 @@
 //! Virtual input, bundles of input states
 //!
-//! Virtual inputs are defined as queries because
-//!
 //! # Coordinate system
 //!
 //! X axis goes from left to right. Y axis goes from up to down. If not.. sorry!
 //!
 //! # Priority
 //!
-//! Lazy input always comes as virtual input.
+//! Lazy input always comes as current state.
 //!
 //! # Usage
 //!
 //! It's good for typical input abstraction. For example, your "select key" may be any of enter,
-//! space, some gamepad button or even left click. Then virtual input is perfect for bundling them.
+//! space, a gamepad button or even left click. Then virtual input is perfect for bundling them.
 //!
 //! However, they are not generic enough. For example, you might want to handle left click in a
 //! different way from enter key. Then you have to build your custom input system like UI commands,
 //! maybe on top of virtual input.
+//!
+//! # Example
+//!
+//! ```rust
+//! use xdl::Key;
+//! use xdl::vi::{AxisButton, Button, DirButton, InputBundle, KeyRepeat};
+//!
+//! let dir = DirButton {
+//!     x: AxisButton {
+//!         pos: Button::new(
+//!             InputBundle {
+//!                 keys: vec![Key::D, Key::Right],
+//!                 mouse: vec![],
+//!             },
+//!             KeyRepeat::None,
+//!         ),
+//!         neg: Button::new(
+//!             InputBundle {
+//!                 keys: vec![Key::A, Key::Left],
+//!                 mouse: vec![],
+//!             },
+//!             KeyRepeat::None,
+//!         ),
+//!     },
+//!     y: AxisButton {
+//!         pos: Button::new(
+//!             InputBundle {
+//!                 keys: vec![Key::S, Key::Down],
+//!                 mouse: vec![],
+//!             },
+//!             KeyRepeat::None,
+//!         ),
+//!         neg: Button::new(
+//!             InputBundle {
+//!                 keys: vec![Key::W, Key::Up],
+//!                 mouse: vec![],
+//!             },
+//!             KeyRepeat::None,
+//!         ),
+//!     },
+//! };
+//! ```
+//!
 
 use std::time::Duration;
 
@@ -48,7 +89,7 @@ impl KeyRepeat {
 }
 
 #[derive(Debug, Clone)]
-pub struct KeyRepeatState {
+struct KeyRepeatState {
     repeat: KeyRepeat,
     /// Loops when it repeats
     accum_repeat: Duration,
@@ -65,10 +106,6 @@ impl KeyRepeatState {
             accum_down: Duration::new(0, 0),
             is_on_first_repeat: false,
         }
-    }
-
-    pub fn accum_time(&self) -> Duration {
-        self.accum_down
     }
 }
 
@@ -119,6 +156,7 @@ impl KeyRepeatState {
     }
 }
 
+/// Down | Up | Pressed | Released
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StrictButtonState {
     Down,
@@ -127,7 +165,7 @@ pub enum StrictButtonState {
     Released,
 }
 
-/// Set of inputs
+/// Set of any kind of inputs
 #[derive(Debug, Clone)]
 pub struct InputBundle {
     pub keys: Vec<Key>,
@@ -135,7 +173,7 @@ pub struct InputBundle {
 }
 
 impl InputBundle {
-    pub fn state(&self, input: &Input) -> StrictButtonState {
+    fn state(&self, input: &Input) -> StrictButtonState {
         let mut is_any_down = false;
         let mut is_any_released = false;
 
@@ -183,10 +221,6 @@ impl Button {
             repeat: KeyRepeatState::new(repeat),
         }
     }
-
-    pub fn state(&self) -> StrictButtonState {
-        self.state
-    }
 }
 
 /// Lifecycle
@@ -205,15 +239,16 @@ impl Button {
 // --------------------------------------------------------------------------------
 // Semantic input
 
+/// Down | Up | Pressed | Released with [`Sign`]
 #[derive(Debug, Clone)]
-pub enum AxisState {
+pub enum StrictAxisState {
     Down(Sign),
     Up,
     Pressed(Sign),
     Released(Sign),
 }
 
-/// Negative or positive in one direction
+/// Neg | Pos | Neutral
 #[derive(Debug, Clone)]
 pub struct AxisButton {
     /// Positive input
@@ -255,23 +290,23 @@ impl AxisButton {
         }
     }
 
-    pub fn state(&self) -> AxisState {
+    pub fn state(&self) -> StrictAxisState {
         match [self.pos.state, self.neg.state] {
-            [StrictButtonState::Pressed, _] => AxisState::Pressed(Sign::Pos),
-            [_, StrictButtonState::Pressed] => AxisState::Pressed(Sign::Neg),
+            [StrictButtonState::Pressed, _] => StrictAxisState::Pressed(Sign::Pos),
+            [_, StrictButtonState::Pressed] => StrictAxisState::Pressed(Sign::Neg),
             [StrictButtonState::Down, StrictButtonState::Down] => {
                 // select axis down earlier
                 if self.pos.repeat.accum_down <= self.neg.repeat.accum_down {
-                    AxisState::Down(Sign::Pos)
+                    StrictAxisState::Down(Sign::Pos)
                 } else {
-                    AxisState::Down(Sign::Neg)
+                    StrictAxisState::Down(Sign::Neg)
                 }
             }
-            [StrictButtonState::Down, _] => AxisState::Down(Sign::Pos),
-            [_, StrictButtonState::Down] => AxisState::Down(Sign::Neg),
-            [StrictButtonState::Released, _] => AxisState::Released(Sign::Pos),
-            [_, StrictButtonState::Released] => AxisState::Released(Sign::Neg),
-            _ => AxisState::Up,
+            [StrictButtonState::Down, _] => StrictAxisState::Down(Sign::Pos),
+            [_, StrictButtonState::Down] => StrictAxisState::Down(Sign::Neg),
+            [StrictButtonState::Released, _] => StrictAxisState::Released(Sign::Pos),
+            [_, StrictButtonState::Released] => StrictAxisState::Released(Sign::Neg),
+            _ => StrictAxisState::Up,
         }
     }
 
