@@ -256,7 +256,7 @@ impl Keyboard {
         }
     }
 
-    pub fn update(&mut self) {
+    pub fn on_end_frame(&mut self) {
         self.kbd.b.bits = self.kbd.a.bits;
     }
 }

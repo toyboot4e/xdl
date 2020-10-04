@@ -24,13 +24,19 @@ impl Input {
 
 /// Lifecycle
 impl Input {
+    /// Event pump
     pub fn event(&mut self, ev: &Event) {
         self.kbd.event(ev);
         self.mouse.event(ev);
     }
 
     pub fn update(&mut self) {
-        self.kbd.update();
         self.mouse.update();
+    }
+
+    pub fn on_end_frame(&mut self) {
+        // swap buffers
+        self.kbd.on_end_frame();
+        self.mouse.on_end_frame();
     }
 }
