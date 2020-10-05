@@ -6,7 +6,7 @@
 //!
 //! # Priority
 //!
-//! Lazy input always comes as current state.
+//! Latest inputs always come as current state.
 //!
 //! # About
 //!
@@ -71,9 +71,6 @@ use crate::{
     Input, Key, MouseInput,
 };
 
-// --------------------------------------------------------------------------------
-// Key repeat, button state and input bundle
-
 /// Key repeat settings
 #[derive(Debug, Clone, Copy)]
 pub enum KeyRepeat {
@@ -92,6 +89,20 @@ impl KeyRepeat {
     }
 }
 
+// --------------------------------------------------------------------------------
+// State
+
+/// Down | Up | Pressed | Released
+///
+/// Repeats are not considered.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RawButtonState {
+    Down,
+    Up,
+    Pressed,
+    Released,
+}
+
 #[derive(Debug, Clone)]
 struct KeyRepeatState {
     repeat: KeyRepeat,
@@ -99,6 +110,7 @@ struct KeyRepeatState {
     accum_repeat: Duration,
     /// Does not loop
     accum_down: Duration,
+    /// True until first repeat
     is_on_first_repeat: bool,
 }
 
@@ -116,10 +128,23 @@ impl KeyRepeatState {
 /// Lifecycle
 impl KeyRepeatState {
     /// Returns if it's repeating or not
-    pub fn update(&mut self, state: StrictButtonState, delta: Duration) -> bool {
+    fn update(&mut self, state: RawButtonState, delta: Duration) -> bool {
         match state {
-            StrictButtonState::Down => {
-                let target = match self.repeat {
+            RawButtonState::Up | RawButtonState::Released => {
+                self.accum_repeat = Duration::new(0, 0);
+                self.accum_down = Duration::new(0, 0);
+                self.is_on_first_repeat = false;
+                false
+            }
+            RawButtonState::Pressed => {
+                self.accum_repeat = Duration::new(0, 0);
+                self.accum_down = Duration::new(0, 0);
+                self.is_on_first_repeat = true;
+                false
+            }
+            // Down state may be repeating
+            RawButtonState::Down => {
+                let repeat_duration = match self.repeat {
                     KeyRepeat::None => return false,
                     KeyRepeat::Repeat { first, multi } => {
                         if self.is_on_first_repeat {
@@ -133,41 +158,19 @@ impl KeyRepeatState {
                 self.accum_repeat += delta;
                 self.accum_down += delta;
 
-                let mut repeat = false;
+                let mut is_repeating = false;
 
                 // basically it's just an if branch but in case too long time passed
-                while self.accum_repeat > target {
-                    repeat = true;
+                while self.accum_repeat > repeat_duration {
+                    is_repeating = true;
                     self.is_on_first_repeat = false;
-
-                    self.accum_repeat -= target;
+                    self.accum_repeat -= repeat_duration;
                 }
 
-                repeat
-            }
-            StrictButtonState::Up | StrictButtonState::Released => {
-                self.accum_repeat = Duration::new(0, 0);
-                self.accum_down = Duration::new(0, 0);
-                self.is_on_first_repeat = false;
-                false
-            }
-            StrictButtonState::Pressed => {
-                self.accum_repeat = Duration::new(0, 0);
-                self.accum_down = Duration::new(0, 0);
-                self.is_on_first_repeat = true;
-                false
+                is_repeating
             }
         }
     }
-}
-
-/// Down | Up | Pressed | Released
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum StrictButtonState {
-    Down,
-    Up,
-    Pressed,
-    Released,
 }
 
 /// Set of any kind of inputs
@@ -178,13 +181,13 @@ pub struct InputBundle {
 }
 
 impl InputBundle {
-    fn state(&self, input: &Input) -> StrictButtonState {
+    fn state(&self, input: &Input) -> RawButtonState {
         let mut is_any_down = false;
         let mut is_any_released = false;
 
         for key in self.keys.iter().map(|k| k.clone()) {
             if input.kbd.is_key_pressed(key) {
-                return StrictButtonState::Pressed;
+                return RawButtonState::Pressed;
             }
             is_any_down |= input.kbd.is_key_down(key);
             is_any_released |= input.kbd.is_key_released(key);
@@ -192,22 +195,32 @@ impl InputBundle {
 
         for m in self.mouse.iter().map(|m| m.clone()) {
             if input.mouse.is_pressed(m) {
-                return StrictButtonState::Pressed;
+                return RawButtonState::Pressed;
             }
             is_any_down |= input.mouse.is_down(m);
             is_any_released |= input.mouse.is_released(m);
         }
 
         if is_any_down {
-            StrictButtonState::Down
+            RawButtonState::Down
         } else {
             if is_any_released {
-                StrictButtonState::Released
+                RawButtonState::Released
             } else {
-                StrictButtonState::Up
+                RawButtonState::Up
             }
         }
     }
+}
+
+/// Down | Up | Pressed | Repeating | Released
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StrictButtonState {
+    Down,
+    Up,
+    Pressed,
+    Repeating,
+    Released,
 }
 
 /// Input bundle with repeat state
@@ -234,24 +247,20 @@ impl Button {
         let state = self.bundle.state(input);
         let is_repeating = self.repeat.update(state, delta);
         self.state = if is_repeating {
-            StrictButtonState::Pressed
+            StrictButtonState::Repeating
         } else {
-            state
+            match state {
+                RawButtonState::Down => StrictButtonState::Down,
+                RawButtonState::Up => StrictButtonState::Up,
+                RawButtonState::Pressed => StrictButtonState::Pressed,
+                RawButtonState::Released => StrictButtonState::Released,
+            }
         };
     }
 }
 
 // --------------------------------------------------------------------------------
-// Semantic input
-
-/// Down | Up | Pressed | Released with [`Sign`]
-#[derive(Debug, Clone)]
-pub enum StrictAxisState {
-    Down(Sign),
-    Up,
-    Pressed(Sign),
-    Released(Sign),
-}
+// Semantic buttons
 
 /// Neg | Pos | Neutral
 #[derive(Debug, Clone)]
@@ -271,52 +280,81 @@ impl AxisButton {
 }
 
 impl AxisButton {
+    /// Down | Pressed | Repeating
+    fn is_down(state: StrictButtonState) -> bool {
+        matches!(
+            state,
+            StrictButtonState::Down | StrictButtonState::Pressed | StrictButtonState::Repeating
+        )
+    }
+
+    /// Pressed | Repeating
+    fn is_pressed(state: StrictButtonState) -> bool {
+        matches!(
+            state,
+            StrictButtonState::Pressed | StrictButtonState::Repeating
+        )
+    }
+
+    /// Selects down sign pressed lately
     pub fn sign_down(&self) -> Sign {
-        match [self.pos.state, self.neg.state] {
-            [StrictButtonState::Down, StrictButtonState::Down] => {
-                // select axis down earlier
+        let p_down = Self::is_down(self.pos.state);
+        let n_down = Self::is_down(self.neg.state);
+
+        match [p_down, n_down] {
+            [true, true] => {
                 if self.pos.repeat.accum_down <= self.neg.repeat.accum_down {
                     Sign::Pos
                 } else {
                     Sign::Neg
                 }
             }
-            [StrictButtonState::Down, _] | [StrictButtonState::Pressed, _] => Sign::Pos,
-            [_, StrictButtonState::Down] | [_, StrictButtonState::Pressed] => Sign::Neg,
-            _ => Sign::Neutral,
+            [true, false] => Sign::Pos,
+            [false, true] => Sign::Neg,
+            [false, false] => Sign::Neutral,
         }
     }
 
+    /// Selects pressed sign pressed lately
     pub fn sign_pressed(&self) -> Sign {
-        match [self.pos.state, self.neg.state] {
-            [StrictButtonState::Pressed, _] => Sign::Pos,
-            [_, StrictButtonState::Pressed] => Sign::Neg,
-            _ => Sign::Neutral,
-        }
-    }
-
-    pub fn state(&self) -> StrictAxisState {
-        match [self.pos.state, self.neg.state] {
-            [StrictButtonState::Pressed, _] => StrictAxisState::Pressed(Sign::Pos),
-            [_, StrictButtonState::Pressed] => StrictAxisState::Pressed(Sign::Neg),
-            [StrictButtonState::Down, StrictButtonState::Down] => {
-                // select axis down earlier
+        let p_down = Self::is_down(self.pos.state);
+        let n_down = Self::is_down(self.neg.state);
+        match [p_down, n_down] {
+            [true, true] => {
                 if self.pos.repeat.accum_down <= self.neg.repeat.accum_down {
-                    StrictAxisState::Down(Sign::Pos)
+                    if Self::is_pressed(self.pos.state) {
+                        Sign::Pos
+                    } else {
+                        Sign::Neutral
+                    }
                 } else {
-                    StrictAxisState::Down(Sign::Neg)
+                    if Self::is_pressed(self.neg.state) {
+                        Sign::Neg
+                    } else {
+                        Sign::Neutral
+                    }
                 }
             }
-            [StrictButtonState::Down, _] => StrictAxisState::Down(Sign::Pos),
-            [_, StrictButtonState::Down] => StrictAxisState::Down(Sign::Neg),
-            [StrictButtonState::Released, _] => StrictAxisState::Released(Sign::Pos),
-            [_, StrictButtonState::Released] => StrictAxisState::Released(Sign::Neg),
-            _ => StrictAxisState::Up,
+            [true, false] => {
+                if Self::is_pressed(self.pos.state) {
+                    Sign::Pos
+                } else {
+                    Sign::Neutral
+                }
+            }
+            [false, true] => {
+                if Self::is_pressed(self.neg.state) {
+                    Sign::Neg
+                } else {
+                    Sign::Neutral
+                }
+            }
+            [false, false] => Sign::Neutral,
         }
     }
 
     pub fn accum_down(&self) -> Duration {
-        // select axis down earlier
+        // select sign down lately
         std::cmp::min(self.pos.repeat.accum_down, self.neg.repeat.accum_down)
     }
 }
@@ -363,9 +401,11 @@ impl AxisDirButton {
 }
 
 impl AxisDirButton {
+    /// Creates direction mixing axis inputs
     pub fn to_dir4(&self) -> Option<Dir4> {
-        let x = self.x.sign_pressed().to_i32();
-        let y = self.y.sign_pressed().to_i32();
+        // mix down inputs (not pressed inputs)
+        let x = self.x.sign_down().to_i8();
+        let y = self.y.sign_down().to_i8();
 
         Some(match [x, y] {
             [0, 0] => return None,
@@ -375,7 +415,7 @@ impl AxisDirButton {
             [0, 1] => Dir4::S,
             [-1, 0] => Dir4::W,
             [_, _] => {
-                // select axis down earlier
+                // select axis down lately
                 if self.x.accum_down() <= self.y.accum_down() {
                     match x {
                         1 => Dir4::E,
@@ -384,8 +424,8 @@ impl AxisDirButton {
                     }
                 } else {
                     match y {
-                        -1 => Dir4::N,
                         1 => Dir4::S,
+                        -1 => Dir4::N,
                         _ => unreachable!(),
                     }
                 }

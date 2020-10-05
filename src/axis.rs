@@ -108,6 +108,25 @@ pub enum Dir8 {
 }
 
 impl Dir8 {
+    pub fn from_signs(signs: [Sign; 2]) -> Option<Self> {
+        let x = signs[0].to_i8();
+        let y = signs[1].to_i8();
+
+        Some(match [x, y] {
+            [0, 0] => return None,
+            // clockwise
+            [0, -1] => Dir8::N,
+            [1, -1] => Dir8::NE,
+            [1, 0] => Dir8::E,
+            [1, 1] => Dir8::SE,
+            [0, 1] => Dir8::S,
+            [-1, 1] => Dir8::SW,
+            [-1, 0] => Dir8::W,
+            [-1, -1] => Dir8::NW,
+            _ => unreachable!(),
+        })
+    }
+
     pub fn x_sign(&self) -> Sign {
         use Dir8::*;
         use Sign::*;
