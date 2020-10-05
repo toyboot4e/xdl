@@ -20,55 +20,49 @@
 //!
 //! # Example
 //!
-//! Diretion button:
+//! Setting up axis input:
 //!
 //! ```rust
-//! use xdl::Key;
-//! use xdl::vi::{AxisButton, Button, DirButton, InputBundle, KeyRepeat};
+//! use std::time::Duration;
 //!
-//!
-//! let repeat = KeyRepeat::Repeat {
-//!     first: Duration::new(0, 16666666) * 8,
-//!     multi: Duration::new(0, 16666666) * 6,
+//! use xdl::{
+//!     vi::{AxisDirButton, InputBundle, KeyRepeat},
+//!     Key,
 //! };
 //!
-//! let dir = AxisDirButton {
-//!     x: AxisButton {
-//!         pos: Button::new(
-//!             InputBundle {
-//!                 keys: vec![Key::D, Key::Right],
-//!                 mouse: vec![],
-//!             },
-//!             repeat,
-//!         ),
-//!         neg: Button::new(
-//!             InputBundle {
-//!                 keys: vec![Key::A, Key::Left],
-//!                 mouse: vec![],
-//!             },
-//!             repeat,
-//!         ),
+//! let dir = AxisDirButton::new(
+//!     KeyRepeat::Repeat {
+//!         first: Duration::new(0, 16666666) * 8,
+//!         multi: Duration::new(0, 16666666) * 6,
 //!     },
-//!     y: AxisButton {
-//!         pos: Button::new(
-//!             InputBundle {
-//!                 keys: vec![Key::S, Key::Down],
-//!                 mouse: vec![],
-//!             },
-//!             repeat,
-//!         ),
-//!         neg: Button::new(
-//!             InputBundle {
-//!                 keys: vec![Key::W, Key::Up],
-//!                 mouse: vec![],
-//!             },
-//!             repeat,
-//!         ),
-//!     },
-//! };
+//!     [
+//!          // positive input in x axis:
+//!          InputBundle {
+//!              keys: vec![Key::D, Key::Right],
+//!              mouse: vec![],
+//!          },
+//!          // negative input in x axis:
+//!          InputBundle {
+//!              keys: vec![Key::A, Key::Left],
+//!              mouse: vec![],
+//!          },
+//!     ],
+//!     [
+//!          // negative input in y axis:
+//!          InputBundle {
+//!              keys: vec![Key::S, Key::Down],
+//!              mouse: vec![],
+//!          },
+//!          // negative input in y axis:
+//!          InputBundle {
+//!               keys: vec![Key::W, Key::Up],
+//!               mouse: vec![],
+//!          },
+//!     ],
+//! );
 //! ```
 //!
-//! Then manage the lifecycle! (By calling `update`)
+//! Then call `update` when you update your game!
 
 use std::time::Duration;
 
@@ -329,13 +323,37 @@ impl AxisButton {
 
 /// [x, y] axes translated as direction
 ///
-/// Mixes [x, y] components to make direction.
+/// [x, y] components are "mixed" to make direction. For example, [1, 1] is interpreted as
+/// south-east.
 #[derive(Debug, Clone)]
 pub struct AxisDirButton {
-    pub x: AxisButton,
-    pub y: AxisButton,
+    x: AxisButton,
+    y: AxisButton,
 }
 
+impl AxisDirButton {
+    /// Creates axis from [positive, negative] input bundle in (x, y) axis
+    ///
+    /// Makes sure that the key repeat configuration is shared among buttons (while the states are
+    /// not shared).
+    pub fn new(repeat: KeyRepeat, xs: [InputBundle; 2], ys: [InputBundle; 2]) -> Self {
+        let x_pos = Button::new(xs[0].clone(), repeat);
+        let x_neg = Button::new(xs[1].clone(), repeat);
+        let y_pos = Button::new(ys[0].clone(), repeat);
+        let y_neg = Button::new(ys[1].clone(), repeat);
+
+        Self {
+            x: AxisButton {
+                pos: x_pos,
+                neg: x_neg,
+            },
+            y: AxisButton {
+                pos: y_pos,
+                neg: y_neg,
+            },
+        }
+    }
+}
 /// Lifecycle
 impl AxisDirButton {
     pub fn update(&mut self, input: &Input, delta: Duration) {
