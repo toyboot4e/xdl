@@ -1,5 +1,15 @@
 //! Virtual input, bundles of input states
 //!
+//! # About
+//!
+//! Virtual input is good for typical input abstraction. For example, your "select key" may be any
+//! of enter, space, a gamepad button or even left click. Then the virtual input is perfect for
+//! bundling them.
+//!
+//! However, they are not generic enough. For example, you might want to handle left click in a
+//! different way from enter key. Then you have to build your custom input system like UI commands,
+//! maybe using virtual input.
+//!
 //! # Lifecycle
 //!
 //! Lifecycle types need to be `update`d when you update your game.
@@ -11,16 +21,6 @@
 //! # Priority
 //!
 //! Latest inputs always come as current state.
-//!
-//! # About
-//!
-//! Virtual input is good for typical input abstraction. For example, your "select key" may be any
-//! of enter, space, a gamepad button or even left click. Then the virtual input is perfect for
-//! bundling them.
-//!
-//! However, they are not generic enough. For example, you might want to handle left click in a
-//! different way from enter key. Then you have to build your custom input system like UI commands,
-//! maybe using virtual input.
 
 use std::time::Duration;
 
@@ -132,7 +132,7 @@ impl KeyRepeatState {
 }
 
 /// Set of any kind of inputs
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct InputBundle {
     pub keys: Vec<Key>,
     pub mouse: Vec<MouseInput>,
@@ -196,6 +196,11 @@ impl Button {
             state: StrictButtonState::Up,
             repeat: KeyRepeatState::new(repeat),
         }
+    }
+
+    /// How long it's been down
+    pub fn accum_down(&self) -> Duration {
+        self.repeat.accum_down
     }
 }
 
@@ -311,6 +316,7 @@ impl AxisButton {
         }
     }
 
+    /// How long it's been down
     pub fn accum_down(&self) -> Duration {
         // select sign down lately
         std::cmp::min(self.pos.repeat.accum_down, self.neg.repeat.accum_down)
@@ -341,24 +347,24 @@ impl AxisButton {
 ///          // positive input in x axis:
 ///          InputBundle {
 ///              keys: vec![Key::D, Key::Right],
-///              mouse: vec![],
+///              ..Default::default()
 ///          },
 ///          // negative input in x axis:
 ///          InputBundle {
 ///              keys: vec![Key::A, Key::Left],
-///              mouse: vec![],
+///              ..Default::default()
 ///          },
 ///     ],
 ///     [
 ///          // positive input in y axis:
 ///          InputBundle {
 ///              keys: vec![Key::S, Key::Down],
-///              mouse: vec![],
+///              ..Default::default()
 ///          },
 ///          // negative input in y axis:
 ///          InputBundle {
-///               keys: vec![Key::W, Key::Up],
-///               mouse: vec![],
+///              keys: vec![Key::W, Key::Up],
+///              ..Default::default()
 ///          },
 ///     ],
 /// );
@@ -453,5 +459,3 @@ impl AxisDirButton {
         })
     }
 }
-
-// TODO: add numpad-like direction where [x, y] components are not mixed
