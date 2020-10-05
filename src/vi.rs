@@ -1,5 +1,9 @@
 //! Virtual input, bundles of input states
 //!
+//! # Lifecycle
+//!
+//! Lifecycle types need to be `update`d when you update your game.
+//!
 //! # Coordinate system
 //!
 //! X axis goes from left to right. Y axis goes from up to down. If not.. sorry!
@@ -11,58 +15,12 @@
 //! # About
 //!
 //! Virtual input is good for typical input abstraction. For example, your "select key" may be any
-//! of enter, space, a gamepad button or even left click. Then virtual input is perfect for bundling
-//! them.
+//! of enter, space, a gamepad button or even left click. Then the virtual input is perfect for
+//! bundling them.
 //!
 //! However, they are not generic enough. For example, you might want to handle left click in a
 //! different way from enter key. Then you have to build your custom input system like UI commands,
 //! maybe using virtual input.
-//!
-//! # Example
-//!
-//! Setting up axis input:
-//!
-//! ```rust
-//! use std::time::Duration;
-//!
-//! use xdl::{
-//!     vi::{AxisDirButton, InputBundle, KeyRepeat},
-//!     Key,
-//! };
-//!
-//! let dir = AxisDirButton::new(
-//!     KeyRepeat::Repeat {
-//!         first: Duration::new(0, 16666666) * 8,
-//!         multi: Duration::new(0, 16666666) * 6,
-//!     },
-//!     [
-//!          // positive input in x axis:
-//!          InputBundle {
-//!              keys: vec![Key::D, Key::Right],
-//!              mouse: vec![],
-//!          },
-//!          // negative input in x axis:
-//!          InputBundle {
-//!              keys: vec![Key::A, Key::Left],
-//!              mouse: vec![],
-//!          },
-//!     ],
-//!     [
-//!          // negative input in y axis:
-//!          InputBundle {
-//!              keys: vec![Key::S, Key::Down],
-//!              mouse: vec![],
-//!          },
-//!          // negative input in y axis:
-//!          InputBundle {
-//!               keys: vec![Key::W, Key::Up],
-//!               mouse: vec![],
-//!          },
-//!     ],
-//! );
-//! ```
-//!
-//! Then call `update` when you update your game!
 
 use std::time::Duration;
 
@@ -226,8 +184,8 @@ pub enum StrictButtonState {
 /// Input bundle with repeat state
 #[derive(Debug, Clone)]
 pub struct Button {
-    bundle: InputBundle,
-    state: StrictButtonState,
+    pub bundle: InputBundle,
+    pub state: StrictButtonState,
     repeat: KeyRepeatState,
 }
 
@@ -363,6 +321,48 @@ impl AxisButton {
 ///
 /// [x, y] components are "mixed" to make direction. For example, [1, 1] is interpreted as
 /// south-east.
+///
+/// # Example
+///
+/// ```rust
+/// use std::time::Duration;
+///
+/// use xdl::{
+///     vi::{AxisDirButton, InputBundle, KeyRepeat},
+///     Key,
+/// };
+///
+/// let dir = AxisDirButton::new(
+///     KeyRepeat::Repeat {
+///         first: Duration::new(0, 16666666) * 8,
+///         multi: Duration::new(0, 16666666) * 6,
+///     },
+///     [
+///          // positive input in x axis:
+///          InputBundle {
+///              keys: vec![Key::D, Key::Right],
+///              mouse: vec![],
+///          },
+///          // negative input in x axis:
+///          InputBundle {
+///              keys: vec![Key::A, Key::Left],
+///              mouse: vec![],
+///          },
+///     ],
+///     [
+///          // positive input in y axis:
+///          InputBundle {
+///              keys: vec![Key::S, Key::Down],
+///              mouse: vec![],
+///          },
+///          // negative input in y axis:
+///          InputBundle {
+///               keys: vec![Key::W, Key::Up],
+///               mouse: vec![],
+///          },
+///     ],
+/// );
+/// ```
 #[derive(Debug, Clone)]
 pub struct AxisDirButton {
     x: AxisButton,
@@ -392,6 +392,7 @@ impl AxisDirButton {
         }
     }
 }
+
 /// Lifecycle
 impl AxisDirButton {
     pub fn update(&mut self, input: &Input, delta: Duration) {
