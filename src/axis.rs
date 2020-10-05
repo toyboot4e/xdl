@@ -43,6 +43,14 @@ impl Sign {
             Sign::Neutral => 0,
         }
     }
+
+    pub fn inv(&self) -> Self {
+        match self {
+            Sign::Pos => Sign::Neg,
+            Sign::Neg => Sign::Pos,
+            Sign::Neutral => Sign::Neutral,
+        }
+    }
 }
 
 /// One of the four directions: N, E, S, W
@@ -91,6 +99,17 @@ impl Dir4 {
 
     pub fn signs_isize(&self) -> [isize; 2] {
         [self.x_sign().to_isize(), self.y_sign().to_isize()]
+    }
+}
+
+impl Dir4 {
+    pub fn inv(&self) -> Dir4 {
+        match self {
+            Dir4::N => Dir4::S,
+            Dir4::E => Dir4::W,
+            Dir4::S => Dir4::N,
+            Dir4::W => Dir4::E,
+        }
     }
 }
 
@@ -171,5 +190,70 @@ impl Dir8 {
         use Dir8::*;
 
         &[N, NE, E, SE, S, SW, W, NW]
+    }
+
+    pub fn inv(&self) -> Self {
+        match self {
+            Dir8::N => Dir8::S,
+            Dir8::NE => Dir8::SW,
+            Dir8::E => Dir8::W,
+            Dir8::SE => Dir8::NW,
+            Dir8::S => Dir8::N,
+            Dir8::SW => Dir8::NE,
+            Dir8::W => Dir8::E,
+            Dir8::NW => Dir8::SE,
+        }
+    }
+
+    pub fn r45(&self) -> Self {
+        match self {
+            Dir8::N => Dir8::NE,
+            Dir8::NE => Dir8::E,
+            Dir8::E => Dir8::SE,
+            Dir8::SE => Dir8::S,
+            Dir8::S => Dir8::SW,
+            Dir8::SW => Dir8::W,
+            Dir8::W => Dir8::NW,
+            Dir8::NW => Dir8::N,
+        }
+    }
+
+    pub fn l45(&self) -> Self {
+        match self {
+            Dir8::N => Dir8::NW,
+            Dir8::NE => Dir8::W,
+            Dir8::E => Dir8::NE,
+            Dir8::SE => Dir8::E,
+            Dir8::S => Dir8::SE,
+            Dir8::SW => Dir8::SW,
+            Dir8::W => Dir8::SW,
+            Dir8::NW => Dir8::W,
+        }
+    }
+
+    pub fn r90(&self) -> Self {
+        match self {
+            Dir8::N => Dir8::E,
+            Dir8::NE => Dir8::SE,
+            Dir8::E => Dir8::S,
+            Dir8::SE => Dir8::SW,
+            Dir8::S => Dir8::W,
+            Dir8::SW => Dir8::NW,
+            Dir8::W => Dir8::N,
+            Dir8::NW => Dir8::NE,
+        }
+    }
+
+    pub fn l90(&self) -> Self {
+        match self {
+            Dir8::N => Dir8::W,
+            Dir8::NE => Dir8::NE,
+            Dir8::E => Dir8::N,
+            Dir8::SE => Dir8::NE,
+            Dir8::S => Dir8::E,
+            Dir8::SW => Dir8::SE,
+            Dir8::W => Dir8::S,
+            Dir8::NW => Dir8::SW,
+        }
     }
 }
