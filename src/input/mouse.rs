@@ -238,12 +238,12 @@ impl Mouse {
 
 /// Represents a mouse state with cursor position and button press information.
 ///
-/// Basically `sdl2::mouse::MouseState` but backbuffer size and mouse mode.
+/// Basically `sdl2::mouse::MouseState` but with backbuffer size and mouse mode.
 ///
 /// * Relative mouse position is relative to the window
 /// * Global mouse position is relative to the top-left corner of the desktop
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub struct MouseSnapshot {
+struct MouseSnapshot {
     pub x: i32,
     pub y: i32,
     flags: u32,

@@ -8,28 +8,31 @@
 //!
 //! Lazy input always comes as current state.
 //!
-//! # Usage
+//! # About
 //!
-//! It's good for typical input abstraction. For example, your "select key" may be any of enter,
-//! space, a gamepad button or even left click. Then virtual input is perfect for bundling them.
+//! Virtual input is good for typical input abstraction. For example, your "select key" may be any
+//! of enter, space, a gamepad button or even left click. Then virtual input is perfect for bundling
+//! them.
 //!
 //! However, they are not generic enough. For example, you might want to handle left click in a
 //! different way from enter key. Then you have to build your custom input system like UI commands,
-//! maybe on top of virtual input.
+//! maybe using virtual input.
 //!
 //! # Example
+//!
+//! Diretion button:
 //!
 //! ```rust
 //! use xdl::Key;
 //! use xdl::vi::{AxisButton, Button, DirButton, InputBundle, KeyRepeat};
 //!
 //!
-//!  let repeat = KeyRepeat::Repeat {
-//!      first: Duration::new(0, 16666666) * 8,
-//!      multi: Duration::new(0, 16666666) * 6,
-//!  };
+//! let repeat = KeyRepeat::Repeat {
+//!     first: Duration::new(0, 16666666) * 8,
+//!     multi: Duration::new(0, 16666666) * 6,
+//! };
 //!
-//! let dir = DirButton {
+//! let dir = AxisDirButton {
 //!     x: AxisButton {
 //!         pos: Button::new(
 //!             InputBundle {
@@ -65,6 +68,7 @@
 //! };
 //! ```
 //!
+//! Then manage the lifecycle! (By calling `update`)
 
 use std::time::Duration;
 
@@ -323,22 +327,24 @@ impl AxisButton {
     }
 }
 
-/// Direction button for orthogonal grid map
+/// [x, y] axes translated as direction
+///
+/// Mixes [x, y] components to make direction.
 #[derive(Debug, Clone)]
-pub struct DirButton {
+pub struct AxisDirButton {
     pub x: AxisButton,
     pub y: AxisButton,
 }
 
 /// Lifecycle
-impl DirButton {
+impl AxisDirButton {
     pub fn update(&mut self, input: &Input, delta: Duration) {
         self.x.update(input, delta);
         self.y.update(input, delta);
     }
 }
 
-impl DirButton {
+impl AxisDirButton {
     pub fn to_dir4(&self) -> Option<Dir4> {
         let x = self.x.sign_pressed().to_i32();
         let y = self.y.sign_pressed().to_i32();
@@ -388,3 +394,5 @@ impl DirButton {
         })
     }
 }
+
+// TODO: add numpad-like direction where [x, y] components are not mixed

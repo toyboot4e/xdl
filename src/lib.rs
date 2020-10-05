@@ -6,14 +6,15 @@
 //!
 //! # Getting started
 //!
-//! Create [`Input`] with raw SDL window and manage their lifecycle.
+//! Create [`Input`] with raw SDL window and manage the lifecycle.
 //!
 //! See [`vi`] module for virtual input.
 //!
 //! # WIP
 //!
-//! * WIP: keyboard input (key repeat?)
+//! * done: keyboard input
 //! * WIP: mouse input
+//! * WIP: gamepad
 //! * not started: touch input
 
 pub use num_enum;
