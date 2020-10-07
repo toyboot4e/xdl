@@ -2,7 +2,7 @@
 //!
 //! Port of FNA input module + Virtual input.
 //!
-//! Intended for games with orghogonal grid maps.
+//! Intended for games with orthoghogonal grid maps.
 //!
 //! # Getting started
 //!

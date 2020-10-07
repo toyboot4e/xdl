@@ -340,8 +340,8 @@ impl AxisButton {
 ///
 /// let dir = AxisDirButton::new(
 ///     KeyRepeat::Repeat {
-///         first: Duration::new(0, 16666666) * 8,
-///         multi: Duration::new(0, 16666666) * 6,
+///         first: Duration::from_nanos(1_000_000_000 / 60 * 8),
+///         multi: Duration::from_nanos(1_000_000_000 / 60 * 6),
 ///     },
 ///     [
 ///          // positive input in x axis:

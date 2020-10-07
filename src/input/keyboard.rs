@@ -1,5 +1,7 @@
 //! Re-exported to super module
 
+// #![allow(dead_code)]
+
 use std::{collections::HashMap, convert::TryFrom};
 
 use num_enum::TryFromPrimitive;
