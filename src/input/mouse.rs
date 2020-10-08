@@ -2,7 +2,7 @@
 //!
 //! * `x1`: first extended mouse button
 
-use sdl2::event::Event;
+use ::sdl2::event::Event;
 
 use crate::utils::Double;
 

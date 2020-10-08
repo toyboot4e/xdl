@@ -2,13 +2,14 @@
 
 // #![allow(dead_code)]
 
-use std::{collections::HashMap, convert::TryFrom};
-
-use num_enum::TryFromPrimitive;
-
-pub use sdl2::{
+pub use ::sdl2::{
     event::Event,
     keyboard::{Keycode, Mod, Scancode},
+};
+
+use ::{
+    num_enum::TryFromPrimitive,
+    std::{collections::HashMap, convert::TryFrom},
 };
 
 use crate::utils::Double;

@@ -1,10 +1,9 @@
 pub mod keyboard;
 pub mod mouse;
 
-use sdl2::event::Event;
+use ::sdl2::event::Event;
 
-use keyboard::Keyboard;
-use mouse::Mouse;
+use self::{keyboard::Keyboard, mouse::Mouse};
 
 /// All of the input states
 #[derive(Debug, Clone)]

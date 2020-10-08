@@ -22,7 +22,7 @@
 //!
 //! Latest inputs always come as current state.
 
-use std::time::Duration;
+use ::std::time::Duration;
 
 use crate::{
     axis::{Dir4, Dir8, Sign},

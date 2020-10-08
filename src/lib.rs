@@ -26,7 +26,7 @@ pub mod vi;
 
 mod input;
 
-pub use input::{
+pub use crate::input::{
     keyboard::{Key, Keyboard},
     mouse::{Mouse, MouseInput},
     Input,
