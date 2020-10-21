@@ -1,6 +1,6 @@
 //! Re-exported to super module
 
-// #![allow(dead_code)]
+#![allow(dead_code)]
 
 pub use ::sdl2::{
     event::Event,

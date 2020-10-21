@@ -2,6 +2,8 @@
 //!
 //! * `x1`: first extended mouse button
 
+#![allow(dead_code)]
+
 use ::sdl2::event::Event;
 
 use crate::utils::Double;
