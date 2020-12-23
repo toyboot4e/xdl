@@ -2,17 +2,24 @@
 
 #![allow(dead_code)]
 
-pub use ::sdl2::{
-    event::Event,
-    keyboard::{Keycode, Mod, Scancode},
-};
-
-use ::{
+use {
     num_enum::TryFromPrimitive,
     std::{collections::HashMap, convert::TryFrom},
 };
 
 use crate::utils::Double;
+
+/// External keycode (SDl2)
+#[cfg(feature = "use-sdl2")]
+pub type ExternalKey = sdl2::keyboard::Keycode;
+
+/// External keycode (Rokol)
+#[cfg(feature = "use-rokol")]
+pub type ExternalKey = rokol::app::Key;
+
+/// External keycode (dummy, just for editor support)
+#[cfg(not(any(feature = "use-sdl2", feature = "use-rokol")))]
+pub type ExternalKey = u32;
 
 /// XDL keycode
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, TryFromPrimitive)]
@@ -187,17 +194,24 @@ pub enum Key {
 /// All of the mouse states
 #[derive(Debug, Clone)]
 pub struct Keyboard {
-    /// SDL2 keycode to XDL keycode
-    s2f: HashMap<Keycode, Key>,
+    /// External keycode to XDL keycode
+    e2x: HashMap<ExternalKey, Key>,
     kbd: Double<KeyboardStateSnapshot>,
 }
 
 impl Default for Keyboard {
     fn default() -> Self {
         Self {
-            s2f: self::gen_key_translation(),
+            e2x: self::gen_key_translation(),
             kbd: Double::default(),
         }
+    }
+}
+
+impl Keyboard {
+    pub fn clear(&mut self) {
+        self.kbd.a = KeyboardStateSnapshot { bits: [0; 8] };
+        self.kbd.b = KeyboardStateSnapshot { bits: [0; 8] };
     }
 }
 
@@ -240,8 +254,10 @@ impl Keyboard {
 }
 
 /// Lifecycle
+#[cfg(feature = "use-sdl2")]
 impl Keyboard {
-    pub fn event(&mut self, ev: &Event) {
+    pub fn event(&mut self, ev: &sdl2::event::Event) {
+        use sdl2::Event;
         match ev {
             Event::KeyDown {
                 keycode: Some(sdl_key),
@@ -258,26 +274,50 @@ impl Keyboard {
             _ => {}
         }
     }
+}
 
-    pub fn on_end_frame(&mut self) {
-        self.kbd.b.bits = self.kbd.a.bits;
+#[cfg(feature = "use-rokol")]
+impl Keyboard {
+    pub fn event(&mut self, ev: &rokol::app::Event) {
+        use rokol::app::{Event, EventType, Key};
+
+        let ev_type = EventType::from_u32(ev.type_).unwrap();
+        match ev_type {
+            EventType::KeyDown => {
+                let key = Key::from_u32(ev.key_code).unwrap();
+                self.on_key_down(key);
+            }
+            EventType::KeyUp => {
+                let key = Key::from_u32(ev.key_code).unwrap();
+                self.on_key_up(key);
+            }
+            _ => {
+                //
+            }
+        }
     }
 }
 
 impl Keyboard {
-    fn on_key_down(&mut self, sdl_key: Keycode) {
-        let xdl_key = match self.s2f.get(&sdl_key) {
+    pub fn on_end_frame(&mut self) {
+        self.kbd.b.bits = self.kbd.a.bits;
+    }
+
+    fn on_key_down(&mut self, external_key: ExternalKey) {
+        let xdl_key = match self.e2x.get(&external_key) {
             Some(key) => key.clone(),
             None => return,
         };
+
         self.kbd.a.on_key_down(xdl_key);
     }
 
-    fn on_key_up(&mut self, sdl_key: Keycode) {
-        let xdl_key = match self.s2f.get(&sdl_key) {
+    fn on_key_up(&mut self, external_key: ExternalKey) {
+        let xdl_key = match self.e2x.get(&external_key) {
             Some(key) => key.clone(),
             None => return,
         };
+
         self.kbd.a.on_key_up(xdl_key);
     }
 }
@@ -362,7 +402,14 @@ impl KeyboardStateSnapshot {
     }
 }
 
-pub fn gen_key_translation() -> HashMap<Keycode, Key> {
+/// Generated key translation for Rust-SDL2
+#[cfg(feature = "use-sdl2")]
+fn gen_key_translation() -> HashMap<sdl2::event::Keycode, Key> {
+    pub use sdl2::{
+        event::Event,
+        keyboard::{Keycode, Mod, Scancode},
+    };
+
     [
         (Keycode::A, Key::A),
         (Keycode::B, Key::B),
@@ -475,6 +522,7 @@ pub fn gen_key_translation() -> HashMap<Keycode, Key> {
         (Keycode::PageDown, Key::PageDown),
         (Keycode::Pause, Key::Pause),
         (Keycode::Period, Key::OemPeriod),
+        // FIXME:
         (Keycode::Equals, Key::OemPlus),
         (Keycode::PrintScreen, Key::PrintScreen),
         (Keycode::Quote, Key::OemQuotes),
@@ -489,4 +537,141 @@ pub fn gen_key_translation() -> HashMap<Keycode, Key> {
     .iter()
     .cloned()
     .collect()
+}
+
+#[cfg(feature = "use-rokol")]
+fn gen_key_translation() -> HashMap<rokol::app::Key, Key> {
+    use rokol::app::Key as RKey;
+
+    [
+        (RKey::A, Key::A),
+        (RKey::B, Key::B),
+        (RKey::C, Key::C),
+        (RKey::D, Key::D),
+        (RKey::E, Key::E),
+        (RKey::F, Key::F),
+        (RKey::G, Key::G),
+        (RKey::H, Key::H),
+        (RKey::I, Key::I),
+        (RKey::J, Key::J),
+        (RKey::K, Key::K),
+        (RKey::L, Key::L),
+        (RKey::M, Key::M),
+        (RKey::N, Key::N),
+        (RKey::O, Key::O),
+        (RKey::P, Key::P),
+        (RKey::Q, Key::Q),
+        (RKey::R, Key::R),
+        (RKey::S, Key::S),
+        (RKey::T, Key::T),
+        (RKey::U, Key::U),
+        (RKey::V, Key::V),
+        (RKey::W, Key::W),
+        (RKey::X, Key::X),
+        (RKey::Y, Key::Y),
+        (RKey::Z, Key::Z),
+        (RKey::Kbd0, Key::D0),
+        (RKey::Kbd1, Key::D1),
+        (RKey::Kbd2, Key::D2),
+        (RKey::Kbd3, Key::D3),
+        (RKey::Kbd4, Key::D4),
+        (RKey::Kbd5, Key::D5),
+        (RKey::Kbd6, Key::D6),
+        (RKey::Kbd7, Key::D7),
+        (RKey::Kbd8, Key::D8),
+        (RKey::Kbd9, Key::D9),
+        (RKey::KP0, Key::NumPad0),
+        (RKey::KP1, Key::NumPad1),
+        (RKey::KP2, Key::NumPad2),
+        (RKey::KP3, Key::NumPad3),
+        (RKey::KP4, Key::NumPad4),
+        (RKey::KP5, Key::NumPad5),
+        (RKey::KP6, Key::NumPad6),
+        (RKey::KP7, Key::NumPad7),
+        (RKey::KP8, Key::NumPad8),
+        (RKey::KP9, Key::NumPad9),
+        // (RKey::KPClear, Key::OemClear),
+        (RKey::KPDecimal, Key::Decimal),
+        (RKey::KPDivide, Key::Divide),
+        (RKey::KPEnter, Key::Enter),
+        (RKey::KPSubtract, Key::Subtract),
+        (RKey::KPMultiply, Key::Multiply),
+        (RKey::KPDecimal, Key::OemPeriod),
+        (RKey::KPAdd, Key::Add),
+        (RKey::F1, Key::F1),
+        (RKey::F2, Key::F2),
+        (RKey::F3, Key::F3),
+        (RKey::F4, Key::F4),
+        (RKey::F5, Key::F5),
+        (RKey::F6, Key::F6),
+        (RKey::F7, Key::F7),
+        (RKey::F8, Key::F8),
+        (RKey::F9, Key::F9),
+        (RKey::F10, Key::F10),
+        (RKey::F11, Key::F11),
+        (RKey::F12, Key::F12),
+        (RKey::F13, Key::F13),
+        (RKey::F14, Key::F14),
+        (RKey::F15, Key::F15),
+        (RKey::F16, Key::F16),
+        (RKey::F17, Key::F17),
+        (RKey::F18, Key::F18),
+        (RKey::F19, Key::F19),
+        (RKey::F20, Key::F20),
+        (RKey::F21, Key::F21),
+        (RKey::F22, Key::F22),
+        (RKey::F23, Key::F23),
+        (RKey::F24, Key::F24),
+        (RKey::Space, Key::Space),
+        (RKey::Up, Key::Up),
+        (RKey::Down, Key::Down),
+        (RKey::Left, Key::Left),
+        (RKey::Right, Key::Right),
+        (RKey::LeftAlt, Key::LeftAlt),
+        (RKey::RightAlt, Key::RightAlt),
+        (RKey::LeftControl, Key::LeftControl),
+        (RKey::RightControl, Key::RightControl),
+        (RKey::LeftSuper, Key::LeftWindows),
+        (RKey::RightSuper, Key::RightWindows),
+        (RKey::LeftShift, Key::LeftShift),
+        (RKey::RightShift, Key::RightShift),
+        // (RKey::Application, Key::Apps),
+        (RKey::Slash, Key::OemQuestion),
+        (RKey::Backslash, Key::OemBackslash),
+        (RKey::LeftBracket, Key::OemOpenBrackets),
+        (RKey::RightBracket, Key::OemCloseBrackets),
+        (RKey::CapsLock, Key::CapsLock),
+        (RKey::Comma, Key::OemComma),
+        (RKey::Delete, Key::Delete),
+        (RKey::End, Key::End),
+        (RKey::Backspace, Key::Back),
+        (RKey::Enter, Key::Enter),
+        (RKey::Escape, Key::Escape),
+        (RKey::Home, Key::Home),
+        (RKey::Insert, Key::Insert),
+        (RKey::Minus, Key::OemMinus),
+        (RKey::NumLock, Key::NumLock),
+        (RKey::PageUp, Key::PageUp),
+        (RKey::PageDown, Key::PageDown),
+        (RKey::Pause, Key::Pause),
+        (RKey::Period, Key::OemPeriod),
+        // (RKey::Equals, Key::OemPlus),
+        (RKey::PrintScreen, Key::PrintScreen),
+        // (RKey::Quote, Key::OemQuotes),
+        (RKey::ScrollLock, Key::Scroll),
+        (RKey::Semicolon, Key::OemSemicolon),
+        // (RKey::Sleep, Key::Sleep),
+        (RKey::Tab, Key::Tab),
+        // (RKey::Backquote, Key::OemTilde),
+        // (RKey::VolumeUp, Key::VolumeUp),
+        // (RKey::VolumeDown, Key::VolumeDown),
+    ]
+    .iter()
+    .cloned()
+    .collect()
+}
+
+#[cfg(not(any(feature = "use-sdl2", feature = "use-rokol")))]
+fn gen_key_translation() -> HashMap<Keycode, Key> {
+    unimplemented!()
 }

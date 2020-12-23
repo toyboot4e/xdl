@@ -4,13 +4,20 @@ version = "0.1.7"
 authors = ["toyboot4e <toyboot4e@gmail.com>"]
 edition = "2018"
 license = "MIT"
-description = "An entension layer to Rust-SDL2"
-# homepage
-# documentation
+description = "Extentional input layer on Rust-SDL2 or Rokol"
 repository = "https://github.com/toyboot4e/xdl"
-# readme
+
+[features]
+default = []
+
+# please select your backend with feature flag
+use-sdl2 = ["sdl2"]
+use-rokol = ["rokol"]
 
 [dependencies]
-# TODO: use semvar
-sdl2 = "0.34.3"
 num_enum = "0.5.1"
+
+sdl2 = { version = "^0.34.3", optional = true }
+# rokol = { version = "^0.1.1", optional = true }
+rokol = { path = "../rokol", optional = true }
+

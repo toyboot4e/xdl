@@ -1,32 +1,36 @@
-//! Virtual input, bundles of input states
-//!
-//! # About
-//!
-//! Virtual input is good for typical input abstraction. For example, your "select key" may be any
-//! of enter, space, a gamepad button or even left click. Then the virtual input is perfect for
-//! bundling them.
-//!
-//! However, they are not generic enough. For example, you might want to handle left click in a
-//! different way from enter key. Then you have to build your custom input system like UI commands,
-//! maybe using virtual input.
-//!
-//! # Lifecycle
-//!
-//! Lifecycle types need to be `update`d when you update your game.
-//!
-//! # Coordinate system
-//!
-//! X axis goes from left to right. Y axis goes from up to down. If not.. sorry!
-//!
-//! # Priority
-//!
-//! Latest inputs always come as current state.
+/*!
 
-use ::std::time::Duration;
+Virtual input, bundles of input states
+
+# About
+
+Virtual input is good for typical input abstraction. For example, your "select key" may be any
+of enter, space, a gamepad button or even left click. Then the virtual input is perfect for
+bundling them.
+
+However, they are not generic enough. For example, you might want to handle left click in a
+different way from enter key. Then you have to build your custom input system like UI commands,
+maybe using virtual input.
+
+# Lifecycle
+
+Lifecycle types need to be `update`d when you update your game.
+
+# Coordinate system
+
+X axis goes from left to right. Y axis goes from up to down. If not.. sorry!
+
+# Priority
+
+Latest inputs always come as current state.
+
+*/
+
+use std::time::Duration;
 
 use crate::{
     axis::{Dir4, Dir8, Sign},
-    Input, Key, MouseInput,
+    Input, Key,
 };
 
 /// Key repeat settings
@@ -135,7 +139,7 @@ impl KeyRepeatState {
 #[derive(Debug, Clone, Default)]
 pub struct InputBundle {
     pub keys: Vec<Key>,
-    pub mouse: Vec<MouseInput>,
+    // pub mouse: Vec<MouseInput>,
 }
 
 impl InputBundle {
@@ -151,13 +155,13 @@ impl InputBundle {
             is_any_released |= input.kbd.is_key_released(key);
         }
 
-        for m in self.mouse.iter().map(|m| m.clone()) {
-            if input.mouse.is_pressed(m) {
-                return RawButtonState::Pressed;
-            }
-            is_any_down |= input.mouse.is_down(m);
-            is_any_released |= input.mouse.is_released(m);
-        }
+        // for m in self.mouse.iter().map(|m| m.clone()) {
+        //     if input.mouse.is_pressed(m) {
+        //         return RawButtonState::Pressed;
+        //     }
+        //     is_any_down |= input.mouse.is_down(m);
+        //     is_any_released |= input.mouse.is_released(m);
+        // }
 
         if is_any_down {
             RawButtonState::Down
