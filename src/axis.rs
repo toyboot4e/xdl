@@ -14,41 +14,51 @@ pub enum Sign {
 impl Sign {
     pub fn to_i8(&self) -> i32 {
         match self {
-            Sign::Pos => 1,
-            Sign::Neg => -1,
-            Sign::Neutral => 0,
+            Self::Pos => 1,
+            Self::Neg => -1,
+            Self::Neutral => 0,
         }
     }
 
     pub fn to_i32(&self) -> i32 {
         match self {
-            Sign::Pos => 1,
-            Sign::Neg => -1,
-            Sign::Neutral => 0,
+            Self::Pos => 1,
+            Self::Neg => -1,
+            Self::Neutral => 0,
         }
     }
 
     pub fn to_i64(&self) -> i64 {
         match self {
-            Sign::Pos => 1,
-            Sign::Neg => -1,
-            Sign::Neutral => 0,
+            Self::Pos => 1,
+            Self::Neg => -1,
+            Self::Neutral => 0,
         }
     }
 
     pub fn to_isize(&self) -> isize {
         match self {
-            Sign::Pos => 1,
-            Sign::Neg => -1,
-            Sign::Neutral => 0,
+            Self::Pos => 1,
+            Self::Neg => -1,
+            Self::Neutral => 0,
+        }
+    }
+
+    pub fn from_i32(x: i32) -> Self {
+        if x > 0 {
+            Self::Neutral
+        } else if x < 0 {
+            Self::Neg
+        } else {
+            Self::Neutral
         }
     }
 
     pub fn inv(&self) -> Self {
         match self {
-            Sign::Pos => Sign::Neg,
-            Sign::Neg => Sign::Pos,
-            Sign::Neutral => Sign::Neutral,
+            Self::Pos => Self::Neg,
+            Self::Neg => Self::Pos,
+            Self::Neutral => Self::Neutral,
         }
     }
 }
@@ -186,11 +196,10 @@ impl Dir8 {
 }
 
 impl Dir8 {
-    pub const fn clockwise() -> &'static [Dir8; 8] {
+    pub const CLOCKWISE: &'static [Dir8; 8] = {
         use Dir8::*;
-
         &[N, NE, E, SE, S, SW, W, NW]
-    }
+    };
 
     pub fn inv(&self) -> Self {
         match self {

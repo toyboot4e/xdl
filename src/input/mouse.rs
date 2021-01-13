@@ -8,6 +8,11 @@ use ::sdl2::event::Event;
 
 use crate::utils::Double;
 
+// bitflags::bitflags! {
+//     pub struct MouseFlags {
+//     }
+// }
+
 /// All of the mouse states
 #[derive(Debug, Clone)]
 pub struct Mouse {

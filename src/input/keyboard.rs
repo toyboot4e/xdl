@@ -279,7 +279,7 @@ impl Keyboard {
 #[cfg(feature = "use-rokol")]
 impl Keyboard {
     pub fn event(&mut self, ev: &rokol::app::Event) {
-        use rokol::app::{Event, EventType, Key};
+        use rokol::app::{EventType, Key};
 
         let ev_type = EventType::from_u32(ev.type_).unwrap();
         match ev_type {

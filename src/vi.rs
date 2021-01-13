@@ -90,7 +90,7 @@ impl KeyRepeatState {
 /// Lifecycle
 impl KeyRepeatState {
     /// Returns if it's repeating or not
-    fn update(&mut self, state: RawButtonState, delta: Duration) -> bool {
+    fn update(&mut self, state: RawButtonState, dt: Duration) -> bool {
         match state {
             RawButtonState::Up | RawButtonState::Released => {
                 self.accum_repeat = Duration::new(0, 0);
@@ -117,8 +117,8 @@ impl KeyRepeatState {
                     }
                 };
 
-                self.accum_repeat += delta;
-                self.accum_down += delta;
+                self.accum_repeat += dt;
+                self.accum_down += dt;
 
                 let mut is_repeating = false;
 
@@ -202,6 +202,20 @@ impl Button {
         }
     }
 
+    pub fn is_down(&self) -> bool {
+        matches!(
+            self.state,
+            StrictButtonState::Down | StrictButtonState::Pressed | StrictButtonState::Repeating
+        )
+    }
+
+    pub fn is_pressed(&self) -> bool {
+        matches!(
+            self.state,
+            StrictButtonState::Pressed | StrictButtonState::Repeating
+        )
+    }
+
     /// How long it's been down
     pub fn accum_down(&self) -> Duration {
         self.repeat.accum_down
@@ -210,9 +224,11 @@ impl Button {
 
 /// Lifecycle
 impl Button {
-    pub fn update(&mut self, input: &Input, delta: Duration) {
+    pub fn update(&mut self, input: &Input, dt: Duration) {
         let state = self.bundle.state(input);
-        let is_repeating = self.repeat.update(state, delta);
+
+        let is_repeating = self.repeat.update(state, dt);
+
         self.state = if is_repeating {
             StrictButtonState::Repeating
         } else {
@@ -227,7 +243,7 @@ impl Button {
 }
 
 // --------------------------------------------------------------------------------
-// Semantic buttons
+// Higher-level buttons
 
 /// Neg | Pos | Neutral
 #[derive(Debug, Clone)]
@@ -240,35 +256,16 @@ pub struct AxisButton {
 
 /// Lifecycle
 impl AxisButton {
-    pub fn update(&mut self, input: &Input, delta: Duration) {
-        self.pos.update(input, delta);
-        self.neg.update(input, delta);
+    pub fn update(&mut self, input: &Input, dt: Duration) {
+        self.pos.update(input, dt);
+        self.neg.update(input, dt);
     }
 }
 
 impl AxisButton {
-    /// Down | Pressed | Repeating
-    fn is_down(state: StrictButtonState) -> bool {
-        matches!(
-            state,
-            StrictButtonState::Down | StrictButtonState::Pressed | StrictButtonState::Repeating
-        )
-    }
-
-    /// Pressed | Repeating
-    fn is_pressed(state: StrictButtonState) -> bool {
-        matches!(
-            state,
-            StrictButtonState::Pressed | StrictButtonState::Repeating
-        )
-    }
-
     /// Selects down sign pressed lately
     pub fn sign_down(&self) -> Sign {
-        let p_down = Self::is_down(self.pos.state);
-        let n_down = Self::is_down(self.neg.state);
-
-        match [p_down, n_down] {
+        match [self.pos.is_down(), self.neg.is_down()] {
             [true, true] => {
                 if self.pos.repeat.accum_down <= self.neg.repeat.accum_down {
                     Sign::Pos
@@ -284,18 +281,16 @@ impl AxisButton {
 
     /// Selects pressed sign pressed lately
     pub fn sign_pressed(&self) -> Sign {
-        let p_down = Self::is_down(self.pos.state);
-        let n_down = Self::is_down(self.neg.state);
-        match [p_down, n_down] {
+        match [self.pos.is_down(), self.neg.is_down()] {
             [true, true] => {
                 if self.pos.repeat.accum_down <= self.neg.repeat.accum_down {
-                    if Self::is_pressed(self.pos.state) {
+                    if self.pos.is_pressed() {
                         Sign::Pos
                     } else {
                         Sign::Neutral
                     }
                 } else {
-                    if Self::is_pressed(self.neg.state) {
+                    if self.neg.is_pressed() {
                         Sign::Neg
                     } else {
                         Sign::Neutral
@@ -303,14 +298,14 @@ impl AxisButton {
                 }
             }
             [true, false] => {
-                if Self::is_pressed(self.pos.state) {
+                if self.pos.is_pressed() {
                     Sign::Pos
                 } else {
                     Sign::Neutral
                 }
             }
             [false, true] => {
-                if Self::is_pressed(self.neg.state) {
+                if self.neg.is_pressed() {
                     Sign::Neg
                 } else {
                     Sign::Neutral
@@ -329,7 +324,7 @@ impl AxisButton {
 
 /// [x, y] axes translated as direction
 ///
-/// [x, y] components are "mixed" to make direction. For example, [1, 1] is interpreted as
+/// [x, y] components are "mixed" to make directions. For example, [1, 1] is interpreted as
 /// south-east.
 ///
 /// # Example
@@ -405,19 +400,44 @@ impl AxisDirButton {
 
 /// Lifecycle
 impl AxisDirButton {
-    pub fn update(&mut self, input: &Input, delta: Duration) {
-        self.x.update(input, delta);
-        self.y.update(input, delta);
+    pub fn update(&mut self, input: &Input, dt: Duration) {
+        self.x.update(input, dt);
+        self.y.update(input, dt);
     }
 }
 
 impl AxisDirButton {
-    /// Creates direction mixing axis inputs
-    pub fn to_dir4(&self) -> Option<Dir4> {
+    /// Creates a directional output mixing axis inputs
+    pub fn dir4_down(&self) -> Option<Dir4> {
         // mix down inputs (not pressed inputs)
         let x = self.x.sign_down().to_i8();
         let y = self.y.sign_down().to_i8();
+        self.dir4(x, y)
+    }
 
+    /// Creates a directional output mixing axis inputs
+    pub fn dir4_pressed(&self) -> Option<Dir4> {
+        // mix down inputs (not pressed inputs)
+        let x = self.x.sign_pressed().to_i8();
+        let y = self.y.sign_pressed().to_i8();
+        self.dir4(x, y)
+    }
+
+    /// Creates a directional output mixing axis inputs
+    pub fn dir8_down(&self) -> Option<Dir8> {
+        let x = self.x.sign_down().to_i8();
+        let y = self.y.sign_down().to_i8();
+        self.dir8(x, y)
+    }
+
+    /// Creates a directional output mixing axis inputs
+    pub fn dir8_pressed(&self) -> Option<Dir8> {
+        let x = self.x.sign_pressed().to_i8();
+        let y = self.y.sign_pressed().to_i8();
+        self.dir8(x, y)
+    }
+
+    fn dir4(&self, x: i32, y: i32) -> Option<Dir4> {
         Some(match [x, y] {
             [0, 0] => return None,
             // clockwise
@@ -444,10 +464,7 @@ impl AxisDirButton {
         })
     }
 
-    pub fn to_dir8(&self) -> Option<Dir8> {
-        let x = self.x.sign_pressed().to_i8();
-        let y = self.y.sign_pressed().to_i8();
-
+    fn dir8(&self, x: i32, y: i32) -> Option<Dir8> {
         Some(match [x, y] {
             [0, 0] => return None,
             // clockwise
@@ -459,7 +476,7 @@ impl AxisDirButton {
             [-1, 1] => Dir8::SW,
             [-1, 0] => Dir8::W,
             [-1, -1] => Dir8::NW,
-            _ => unreachable!(),
+            _ => unreachable!("unable to create Dir8 from virtual input"),
         })
     }
 }
