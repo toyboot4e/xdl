@@ -135,10 +135,32 @@ impl KeyRepeatState {
     }
 }
 
+/// [`Key`] with optionally modifier keys
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum KeyEntry {
+    Key1([Key; 1]),
+    /// control+f
+    Key2([Key; 2]),
+    /// control+shift+f
+    Key3([Key; 3]),
+    /// control+shift+cmd+f
+    Key4([Key; 4]),
+}
+
+impl KeyEntry {
+    pub fn as_slice(&self) -> &[Key] {
+        match self {
+            Self::Key1(ks) => ks,
+            Self::Key2(ks) => ks,
+            Self::Key3(ks) => ks,
+            Self::Key4(ks) => ks,
+        }
+    }
+}
 /// Set of any kind of inputs
 #[derive(Debug, Clone, Default)]
 pub struct InputBundle {
-    pub keys: Vec<Key>,
+    pub keys: Vec<KeyEntry>,
     // pub mouse: Vec<MouseInput>,
 }
 
@@ -147,12 +169,20 @@ impl InputBundle {
         let mut is_any_down = false;
         let mut is_any_released = false;
 
-        for key in self.keys.iter().map(|k| k.clone()) {
-            if input.kbd.is_key_pressed(key) {
+        for entry in self.keys.iter().cloned() {
+            let mut is_pressed = true;
+            let mut is_down = true;
+            let mut is_down_prev = true;
+            for key in entry.as_slice().iter().cloned() {
+                is_pressed &= input.kbd.is_key_pressed(key);
+                is_down &= input.kbd.is_key_down(key);
+                is_down_prev |= input.kbd.snaps.b.is_down(key);
+            }
+            if is_pressed {
                 return RawButtonState::Pressed;
             }
-            is_any_down |= input.kbd.is_key_down(key);
-            is_any_released |= input.kbd.is_key_released(key);
+            is_any_down |= is_down;
+            is_any_released |= is_down_prev && is_down;
         }
 
         // for m in self.mouse.iter().map(|m| m.clone()) {
