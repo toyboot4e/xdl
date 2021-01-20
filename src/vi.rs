@@ -24,6 +24,10 @@ X axis goes from left to right. Y axis goes from up to down. If not.. sorry!
 
 Latest inputs always come as current state.
 
+# TODOs
+
+* handle modifier keys
+
 */
 
 use std::time::Duration;
@@ -33,21 +37,25 @@ use crate::{
     Input, Key,
 };
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 /// Key repeat settings
 #[derive(Debug, Clone, Copy)]
-pub enum KeyRepeat {
+#[cfg_attr(feature = "use-serde", derive(Serialize, Deserialize))]
+pub enum KeyRepeatConfig {
     Repeat { first: Duration, multi: Duration },
     None,
 }
 
 /// Constructors
-impl KeyRepeat {
+impl KeyRepeatConfig {
     pub fn repeat(first: Duration, multi: Duration) -> Self {
-        KeyRepeat::Repeat { first, multi }
+        KeyRepeatConfig::Repeat { first, multi }
     }
 
     pub fn no_repeat() -> Self {
-        KeyRepeat::None
+        KeyRepeatConfig::None
     }
 }
 
@@ -66,18 +74,22 @@ enum RawButtonState {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "use-serde", derive(Serialize, Deserialize))]
 struct KeyRepeatState {
-    repeat: KeyRepeat,
+    /// Key repeat configuration
+    repeat: KeyRepeatConfig,
     /// Loops when it repeats
     accum_repeat: Duration,
     /// Does not loop
+    #[cfg_attr(feature = "use-serde", serde(skip))]
     accum_down: Duration,
     /// True until first repeat
+    #[cfg_attr(feature = "use-serde", serde(skip))]
     is_on_first_repeat: bool,
 }
 
 impl KeyRepeatState {
-    pub fn new(repeat: KeyRepeat) -> Self {
+    pub fn new(repeat: KeyRepeatConfig) -> Self {
         Self {
             repeat,
             accum_repeat: Duration::new(0, 0),
@@ -107,8 +119,8 @@ impl KeyRepeatState {
             // Down state may be repeating
             RawButtonState::Down => {
                 let repeat_duration = match self.repeat {
-                    KeyRepeat::None => return false,
-                    KeyRepeat::Repeat { first, multi } => {
+                    KeyRepeatConfig::None => return false,
+                    KeyRepeatConfig::Repeat { first, multi } => {
                         if self.is_on_first_repeat {
                             first
                         } else {
@@ -137,6 +149,7 @@ impl KeyRepeatState {
 
 /// [`Key`] with optionally modifier keys
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "use-serde", derive(Serialize, Deserialize), serde(untagged))]
 pub enum KeyEntry {
     Key1([Key; 1]),
     /// control+f
@@ -157,8 +170,10 @@ impl KeyEntry {
         }
     }
 }
+
 /// Set of any kind of inputs
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(feature = "use-serde", derive(Serialize, Deserialize))]
 pub struct InputBundle {
     pub keys: Vec<KeyEntry>,
     // pub mouse: Vec<MouseInput>,
@@ -207,6 +222,7 @@ impl InputBundle {
 
 /// Down | Up | Pressed | Repeating | Released
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "use-serde", derive(Serialize, Deserialize))]
 pub enum StrictButtonState {
     Down,
     Up,
@@ -215,16 +231,23 @@ pub enum StrictButtonState {
     Released,
 }
 
+fn default_strict_button_state() -> StrictButtonState {
+    StrictButtonState::Up
+}
+
 /// Input bundle with repeat state
 #[derive(Debug, Clone)]
+// #[cfg_attr(feature = "use-serde", derive(Serialize, Deserialize))]
+#[derive(Serialize, Deserialize)]
 pub struct Button {
     pub bundle: InputBundle,
+    #[serde(skip, default = "default_strict_button_state")]
     pub state: StrictButtonState,
     repeat: KeyRepeatState,
 }
 
 impl Button {
-    pub fn new(bundle: InputBundle, repeat: KeyRepeat) -> Self {
+    pub fn new(bundle: InputBundle, repeat: KeyRepeatConfig) -> Self {
         Self {
             bundle,
             state: StrictButtonState::Up,
@@ -277,6 +300,7 @@ impl Button {
 
 /// Neg | Pos | Neutral
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "use-serde", derive(Serialize, Deserialize))]
 pub struct AxisButton {
     /// Positive input
     pub pos: Button,
@@ -399,6 +423,7 @@ impl AxisButton {
 /// );
 /// ```
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "use-serde", derive(Serialize, Deserialize))]
 pub struct AxisDirButton {
     x: AxisButton,
     y: AxisButton,
@@ -409,7 +434,7 @@ impl AxisDirButton {
     ///
     /// Makes sure that the key repeat configuration is shared among buttons (while the states are
     /// not shared).
-    pub fn new(repeat: KeyRepeat, xs: [InputBundle; 2], ys: [InputBundle; 2]) -> Self {
+    pub fn new(repeat: KeyRepeatConfig, xs: [InputBundle; 2], ys: [InputBundle; 2]) -> Self {
         let x_pos = Button::new(xs[0].clone(), repeat);
         let x_neg = Button::new(xs[1].clone(), repeat);
         let y_pos = Button::new(ys[0].clone(), repeat);

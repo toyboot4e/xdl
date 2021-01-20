@@ -2,6 +2,9 @@
 
 #![allow(dead_code)]
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 use {
     num_enum::TryFromPrimitive,
     std::{collections::HashMap, convert::TryFrom},
@@ -24,6 +27,7 @@ pub type ExternalKey = u32;
 /// XDL keycode
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, TryFromPrimitive)]
 #[repr(u32)]
+#[cfg_attr(feature = "use-serde", derive(Serialize, Deserialize))]
 pub enum Key {
     None = 0,
     /// Backspace
@@ -196,41 +200,41 @@ pub enum Key {
 pub struct Keyboard {
     /// External keycode to XDL keycode
     e2x: HashMap<ExternalKey, Key>,
-    kbd: Double<KeyboardStateSnapshot>,
+    pub(crate) snaps: Double<KeyboardStateSnapshot>,
 }
 
 impl Default for Keyboard {
     fn default() -> Self {
         Self {
             e2x: self::gen_key_translation(),
-            kbd: Double::default(),
+            snaps: Double::default(),
         }
     }
 }
 
 impl Keyboard {
     pub fn clear(&mut self) {
-        self.kbd.a = KeyboardStateSnapshot { bits: [0; 8] };
-        self.kbd.b = KeyboardStateSnapshot { bits: [0; 8] };
+        self.snaps.a = KeyboardStateSnapshot { bits: [0; 8] };
+        self.snaps.b = KeyboardStateSnapshot { bits: [0; 8] };
     }
 }
 
 /// Single key
 impl Keyboard {
     pub fn is_key_down(&self, key: Key) -> bool {
-        self.kbd.a.is_down(key)
+        self.snaps.a.is_down(key)
     }
 
     pub fn is_key_up(&self, key: Key) -> bool {
-        self.kbd.a.is_up(key)
+        self.snaps.a.is_up(key)
     }
 
     pub fn is_key_pressed(&self, key: Key) -> bool {
-        self.kbd.b.is_up(key) && self.kbd.a.is_down(key)
+        self.snaps.b.is_up(key) && self.snaps.a.is_down(key)
     }
 
     pub fn is_key_released(&self, key: Key) -> bool {
-        self.kbd.b.is_down(key) && self.kbd.a.is_up(key)
+        self.snaps.b.is_down(key) && self.snaps.a.is_up(key)
     }
 }
 
@@ -300,7 +304,7 @@ impl Keyboard {
 
 impl Keyboard {
     pub fn on_end_frame(&mut self) {
-        self.kbd.b.bits = self.kbd.a.bits;
+        self.snaps.b.bits = self.snaps.a.bits;
     }
 
     fn on_key_down(&mut self, external_key: ExternalKey) {
@@ -309,7 +313,7 @@ impl Keyboard {
             None => return,
         };
 
-        self.kbd.a.on_key_down(xdl_key);
+        self.snaps.a.on_key_down(xdl_key);
     }
 
     fn on_key_up(&mut self, external_key: ExternalKey) {
@@ -318,7 +322,7 @@ impl Keyboard {
             None => return,
         };
 
-        self.kbd.a.on_key_up(xdl_key);
+        self.snaps.a.on_key_up(xdl_key);
     }
 }
 

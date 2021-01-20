@@ -46,7 +46,7 @@ impl Sign {
 
     pub fn from_i32(x: i32) -> Self {
         if x > 0 {
-            Self::Neutral
+            Self::Pos
         } else if x < 0 {
             Self::Neg
         } else {
@@ -126,14 +126,14 @@ impl Dir4 {
 /// One of the eight directions: N, NE, E, SE, ..
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Dir8 {
-    N,
-    NE,
-    E,
-    SE,
-    S,
-    SW,
-    W,
-    NW,
+    N = 0,
+    NE = 1,
+    E = 2,
+    SE = 3,
+    S = 4,
+    SW = 5,
+    W = 6,
+    NW = 7,
 }
 
 impl Dir8 {

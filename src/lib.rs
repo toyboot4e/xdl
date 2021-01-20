@@ -19,14 +19,6 @@ See [`vi`] module for virtual input.
 
 */
 
-pub use num_enum;
-
-#[cfg(feature = "use-sdl2")]
-pub use sdl2;
-
-#[cfg(feature = "use-rokol")]
-pub use rokol;
-
 pub mod axis;
 pub mod utils;
 pub mod vi;

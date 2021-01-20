@@ -8,7 +8,8 @@ description = "Extentional input layer on Rust-SDL2 or Rokol"
 repository = "https://github.com/toyboot4e/xdl"
 
 [features]
-default = []
+default = ["use-serde"]
+use-serde = ["serde"]
 
 # please select your backend with feature flag
 use-sdl2 = ["sdl2"]
@@ -16,6 +17,8 @@ use-rokol = ["rokol"]
 
 [dependencies]
 num_enum = "0.5.1"
+
+serde = { version = "1.0.120", features = ["derive"], optional = true }
 
 sdl2 = { version = "^0.34.3", optional = true }
 # rokol = { version = "^0.1.1", optional = true }
