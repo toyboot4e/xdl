@@ -42,6 +42,7 @@ use serde::{Deserialize, Serialize};
 
 /// Key repeat settings
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "use-serde", derive(Serialize, Deserialize), serde(untagged))]
 pub enum KeyRepeatConfig {
     Repeat { first: Duration, multi: Duration },
     NoRepeat,
@@ -150,25 +151,52 @@ impl KeyRepeatState {
 }
 
 /// [`Key`] with optionally modifier keys
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "use-serde", derive(Serialize, Deserialize), serde(untagged))]
-pub enum KeyEntry {
-    Key1([Key; 1]),
-    /// control+f
-    Key2([Key; 2]),
-    /// control+shift+f
-    Key3([Key; 3]),
-    /// control+shift+cmd+f
-    Key4([Key; 4]),
+///
+/// TODO: don't use `Vec` while keeping prettier `serde` with RON (untagged enum fails to
+/// desrialize)
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "use-serde", derive(Serialize, Deserialize))]
+pub struct KeyEntry {
+    key: Key,
+    #[cfg_attr(
+        feature = "use-serde",
+        serde(default, skip_serializing_if = "is_false")
+    )]
+    ctrl: bool,
+    #[cfg_attr(
+        feature = "use-serde",
+        serde(default, skip_serializing_if = "is_false")
+    )]
+    shift: bool,
+    #[cfg_attr(
+        feature = "use-serde",
+        serde(default, skip_serializing_if = "is_false")
+    )]
+    meta: bool,
+}
+
+fn is_false(b: &bool) -> bool {
+    !b
+}
+
+impl From<Key> for KeyEntry {
+    fn from(key: Key) -> KeyEntry {
+        Self {
+            key,
+            ctrl: false,
+            shift: false,
+            meta: false,
+        }
+    }
 }
 
 impl KeyEntry {
-    pub fn as_slice(&self) -> &[Key] {
-        match self {
-            Self::Key1(ks) => ks,
-            Self::Key2(ks) => ks,
-            Self::Key3(ks) => ks,
-            Self::Key4(ks) => ks,
+    pub fn key(key: Key) -> Self {
+        Self {
+            key,
+            ctrl: false,
+            shift: false,
+            meta: false,
         }
     }
 }
@@ -186,15 +214,32 @@ impl InputBundle {
         let mut is_any_down = false;
         let mut is_any_released = false;
 
-        for entry in self.keys.iter().cloned() {
+        for entry in self.keys.iter() {
             let mut is_pressed = true;
             let mut is_down = true;
             let mut is_down_prev = true;
-            for key in entry.as_slice().iter().cloned() {
-                is_pressed &= input.kbd.is_key_pressed(key);
-                is_down &= input.kbd.is_key_down(key);
-                is_down_prev |= input.kbd.snaps.b.is_down(key);
+
+            macro_rules! _add {
+                ($key:expr) => {
+                    is_pressed &= input.kbd.is_key_pressed($key);
+                    is_down &= input.kbd.is_key_down($key);
+                    is_down_prev |= input.kbd.snaps.b.is_down($key);
+                };
             }
+            _add!(entry.key);
+            if entry.ctrl {
+                _add!(Key::LCtrl);
+                _add!(Key::RCtrl);
+            }
+            if entry.shift {
+                _add!(Key::LShift);
+                _add!(Key::RShift);
+            }
+            if entry.meta {
+                _add!(Key::LMeta);
+                _add!(Key::RMeta);
+            }
+
             if is_pressed {
                 return RawButtonState::Pressed;
             }
@@ -233,33 +278,48 @@ pub enum StrictButtonState {
     Released,
 }
 
-fn default_strict_button_state() -> StrictButtonState {
-    StrictButtonState::Up
+#[cfg(feature = "use-serde")]
+pub mod button_serde_with {
+    //! `serde` `Button` as [`InputBundle`]. NOTE: `KeyRepeatState` will be `skip`ped
+
+    use super::*;
+    use serde::{
+        de::{Deserialize, Deserializer},
+        ser::{Serialize, Serializer},
+    };
+
+    pub fn serialize<S>(value: &Button, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        value.input.serialize(serializer)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Button, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let input = InputBundle::deserialize(deserializer)?;
+        Ok(Button::new(input, KeyRepeatConfig::NoRepeat))
+    }
 }
 
 /// Input bundle with repeat state
-///
-/// NOTE: [`KeyRepeatState`] is skipped on `serde`. User has to set it manually
 #[derive(Debug, Clone)]
-// #[cfg_attr(feature = "use-serde", derive(Serialize, Deserialize))]
-#[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "use-serde", derive(Serialize, Deserialize))]
 pub struct Button {
     pub input: InputBundle,
-    #[cfg_attr(
-        feature = "use-serde",
-        serde(skip, default = "default_strict_button_state")
-    )]
     pub state: StrictButtonState,
     #[serde(skip)]
     repeat: KeyRepeatState,
 }
 
 impl Button {
-    pub fn new(bundle: InputBundle, repeat: KeyRepeatConfig) -> Self {
+    pub fn new(bundle: InputBundle, repeat_cfg: KeyRepeatConfig) -> Self {
         Self {
             input: bundle,
             state: StrictButtonState::Up,
-            repeat: KeyRepeatState::new(repeat),
+            repeat: KeyRepeatState::new(repeat_cfg),
         }
     }
 
@@ -311,12 +371,16 @@ impl Button {
 // Higher-level buttons
 
 /// Neg | Pos | Neutral
+///
+/// WARNING: It doesn't store key repeat configuration on `serde`.
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "use-serde", derive(Serialize, Deserialize))]
 pub struct AxisButton {
     /// Positive input
+    #[cfg_attr(feature = "use-serde", serde(with = "button_serde_with"))]
     pub pos: Button,
     /// Negative input
+    #[cfg_attr(feature = "use-serde", serde(with = "button_serde_with"))]
     pub neg: Button,
 }
 
