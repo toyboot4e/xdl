@@ -42,10 +42,15 @@ use serde::{Deserialize, Serialize};
 
 /// Key repeat settings
 #[derive(Debug, Clone, Copy)]
-#[cfg_attr(feature = "use-serde", derive(Serialize, Deserialize))]
 pub enum KeyRepeatConfig {
     Repeat { first: Duration, multi: Duration },
-    None,
+    NoRepeat,
+}
+
+impl Default for KeyRepeatConfig {
+    fn default() -> Self {
+        Self::NoRepeat
+    }
 }
 
 /// Constructors
@@ -55,7 +60,7 @@ impl KeyRepeatConfig {
     }
 
     pub fn no_repeat() -> Self {
-        KeyRepeatConfig::None
+        KeyRepeatConfig::NoRepeat
     }
 }
 
@@ -73,25 +78,22 @@ enum RawButtonState {
     Released,
 }
 
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "use-serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Default)]
 struct KeyRepeatState {
     /// Key repeat configuration
-    repeat: KeyRepeatConfig,
+    config: KeyRepeatConfig,
     /// Loops when it repeats
     accum_repeat: Duration,
     /// Does not loop
-    #[cfg_attr(feature = "use-serde", serde(skip))]
     accum_down: Duration,
     /// True until first repeat
-    #[cfg_attr(feature = "use-serde", serde(skip))]
     is_on_first_repeat: bool,
 }
 
 impl KeyRepeatState {
     pub fn new(repeat: KeyRepeatConfig) -> Self {
         Self {
-            repeat,
+            config: repeat,
             accum_repeat: Duration::new(0, 0),
             accum_down: Duration::new(0, 0),
             is_on_first_repeat: false,
@@ -118,8 +120,8 @@ impl KeyRepeatState {
             }
             // Down state may be repeating
             RawButtonState::Down => {
-                let repeat_duration = match self.repeat {
-                    KeyRepeatConfig::None => return false,
+                let repeat_duration = match self.config {
+                    KeyRepeatConfig::NoRepeat => return false,
                     KeyRepeatConfig::Repeat { first, multi } => {
                         if self.is_on_first_repeat {
                             first
@@ -236,23 +238,33 @@ fn default_strict_button_state() -> StrictButtonState {
 }
 
 /// Input bundle with repeat state
+///
+/// NOTE: [`KeyRepeatState`] is skipped on `serde`. User has to set it manually
 #[derive(Debug, Clone)]
 // #[cfg_attr(feature = "use-serde", derive(Serialize, Deserialize))]
 #[derive(Serialize, Deserialize)]
 pub struct Button {
-    pub bundle: InputBundle,
-    #[serde(skip, default = "default_strict_button_state")]
+    pub input: InputBundle,
+    #[cfg_attr(
+        feature = "use-serde",
+        serde(skip, default = "default_strict_button_state")
+    )]
     pub state: StrictButtonState,
+    #[serde(skip)]
     repeat: KeyRepeatState,
 }
 
 impl Button {
     pub fn new(bundle: InputBundle, repeat: KeyRepeatConfig) -> Self {
         Self {
-            bundle,
+            input: bundle,
             state: StrictButtonState::Up,
             repeat: KeyRepeatState::new(repeat),
         }
+    }
+
+    pub fn set_repeat_config(&mut self, cfg: KeyRepeatConfig) {
+        self.repeat = KeyRepeatState::new(cfg);
     }
 
     pub fn is_down(&self) -> bool {
@@ -278,7 +290,7 @@ impl Button {
 /// Lifecycle
 impl Button {
     pub fn update(&mut self, input: &Input, dt: Duration) {
-        let state = self.bundle.state(input);
+        let state = self.input.state(input);
 
         let is_repeating = self.repeat.update(state, dt);
 
@@ -380,48 +392,6 @@ impl AxisButton {
 ///
 /// [x, y] components are "mixed" to make directions. For example, [1, 1] is interpreted as
 /// south-east.
-///
-/// # Example
-///
-/// ```rust
-/// use std::time::Duration;
-///
-/// use xdl::{
-///     vi::{AxisDirButton, InputBundle, KeyRepeat},
-///     Key,
-/// };
-///
-/// let dir = AxisDirButton::new(
-///     KeyRepeat::Repeat {
-///         first: Duration::from_nanos(1_000_000_000 / 60 * 8),
-///         multi: Duration::from_nanos(1_000_000_000 / 60 * 6),
-///     },
-///     [
-///          // positive input in x axis:
-///          InputBundle {
-///              keys: vec![Key::D, Key::Right],
-///              ..Default::default()
-///          },
-///          // negative input in x axis:
-///          InputBundle {
-///              keys: vec![Key::A, Key::Left],
-///              ..Default::default()
-///          },
-///     ],
-///     [
-///          // positive input in y axis:
-///          InputBundle {
-///              keys: vec![Key::S, Key::Down],
-///              ..Default::default()
-///          },
-///          // negative input in y axis:
-///          InputBundle {
-///              keys: vec![Key::W, Key::Up],
-///              ..Default::default()
-///          },
-///     ],
-/// );
-/// ```
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "use-serde", derive(Serialize, Deserialize))]
 pub struct AxisDirButton {
