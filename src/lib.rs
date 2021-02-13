@@ -1,12 +1,12 @@
 /*!
 
-XDL: An extensional input layer on top of Rust-SDL2 or Rokol
+Extensional input layer on top of Rust-SDL2 or Rokol
 
-Port of FNA input module + Virtual input. Intended for games with orthoghogonal grid maps.
+Port of FNA input module + Virtual input, intended for games with orthoghogonal grid maps.
 
 # Getting started
 
-Create [`Input`] with raw SDL window and manage the lifecycle.
+Create [`Input`] with and manage the lifecycle.
 
 See [`vi`] module for virtual input.
 

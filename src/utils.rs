@@ -1,4 +1,6 @@
-//! Internal utilities
+/*!
+Internal utilities
+*/
 
 /// Double buffer
 #[derive(Debug, Clone)]

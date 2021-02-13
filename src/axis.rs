@@ -3,9 +3,9 @@
 /// Pos | Neg | Neutral
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Sign {
-    /// Positive
+    /// Right | Down
     Pos,
-    /// Negative
+    /// Left | Up
     Neg,
     /// Neutral
     Neutral,
@@ -89,9 +89,9 @@ impl Dir4 {
         use Sign::*;
 
         match self {
-            N => Pos,
+            N => Neg,
             E | W => Neutral,
-            S => Neg,
+            S => Pos,
         }
     }
 

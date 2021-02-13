@@ -1,5 +1,4 @@
 /*!
-
 Virtual input, bundles of input states
 
 # About
@@ -27,7 +26,6 @@ Latest inputs always come as current state.
 # TODOs
 
 * handle modifier keys
-
 */
 
 use std::time::Duration;
