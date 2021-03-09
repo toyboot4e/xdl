@@ -11,7 +11,7 @@ repository = "https://github.com/toyboot4e/xdl"
 default = ["use-serde"]
 use-serde = ["serde"]
 
-# please select your backend with feature flag
+# backend
 use-sdl2 = ["sdl2"]
 use-rokol = ["rokol"]
 
@@ -21,6 +21,6 @@ num_enum = "0.5.1"
 serde = { version = "1.0.120", features = ["derive"], optional = true }
 
 sdl2 = { version = "^0.34.3", optional = true }
-# rokol = { version = "^0.1.1", optional = true }
 rokol = { path = "../rokol", optional = true }
+# rokol = { version = "^0.1.1", optional = true }
 

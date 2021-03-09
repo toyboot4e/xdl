@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 pub mod keyboard;
 // pub mod mouse;
 
@@ -31,6 +33,14 @@ impl Input {
     }
 }
 
+impl Input {
+    /// Resets all states
+    pub fn clear(&mut self) {
+        self.kbd.clear();
+        // self.mouse.clear();
+    }
+}
+
 #[cfg(feature = "use-rokol")]
 impl Input {
     pub fn new() -> Self {
@@ -49,11 +59,5 @@ impl Input {
         // swap buffers
         self.kbd.on_end_frame();
         // self.mouse.on_end_frame();
-    }
-
-    /// Resets all states (useful when e.g. losing window focus and can't receive key released event)
-    pub fn clear(&mut self) {
-        self.kbd.clear();
-        // self.mouse.clear();
     }
 }

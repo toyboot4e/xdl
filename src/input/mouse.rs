@@ -1,6 +1,8 @@
-//! Mouse state
-//!
-//! * `x1`: first extended mouse button
+/*!
+Mouse state
+
+* `x1`: first extended mouse button
+*/
 
 #![allow(dead_code)]
 

@@ -25,6 +25,8 @@ pub type ExternalKey = rokol::app::Key;
 pub type ExternalKey = u32;
 
 /// XDL keycode
+///
+/// Can be created from supported backend's keycode (`ExternalKey`)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, TryFromPrimitive)]
 #[repr(u32)]
 #[cfg_attr(feature = "use-serde", derive(Serialize, Deserialize))]
@@ -196,46 +198,46 @@ pub enum Key {
     OemEnlW = 0xf4,
 }
 
-/// All of the mouse states
+/// All of the keyboard states
 #[derive(Debug, Clone)]
 pub struct Keyboard {
     /// External keycode to XDL keycode
     e2x: HashMap<ExternalKey, Key>,
-    pub(crate) snaps: Double<KeyboardStateSnapshot>,
+    pub(crate) states: Double<KeyboardStateSnapshot>,
 }
 
 impl Default for Keyboard {
     fn default() -> Self {
         Self {
             e2x: self::gen_key_translation(),
-            snaps: Double::default(),
+            states: Double::default(),
         }
     }
 }
 
 impl Keyboard {
     pub fn clear(&mut self) {
-        self.snaps.a = KeyboardStateSnapshot { bits: [0; 8] };
-        self.snaps.b = KeyboardStateSnapshot { bits: [0; 8] };
+        self.states.a = KeyboardStateSnapshot { bits: [0; 8] };
+        self.states.b = KeyboardStateSnapshot { bits: [0; 8] };
     }
 }
 
 /// Single key
 impl Keyboard {
     pub fn is_key_down(&self, key: Key) -> bool {
-        self.snaps.a.is_down(key)
+        self.states.a.is_down(key)
     }
 
     pub fn is_key_up(&self, key: Key) -> bool {
-        self.snaps.a.is_up(key)
+        self.states.a.is_up(key)
     }
 
     pub fn is_key_pressed(&self, key: Key) -> bool {
-        self.snaps.b.is_up(key) && self.snaps.a.is_down(key)
+        self.states.b.is_up(key) && self.states.a.is_down(key)
     }
 
     pub fn is_key_released(&self, key: Key) -> bool {
-        self.snaps.b.is_down(key) && self.snaps.a.is_up(key)
+        self.states.b.is_down(key) && self.states.a.is_up(key)
     }
 }
 
@@ -258,11 +260,11 @@ impl Keyboard {
     }
 }
 
-/// Lifecycle
+/// Lifecycle (SDL2 backend)
 #[cfg(feature = "use-sdl2")]
 impl Keyboard {
     pub fn event(&mut self, ev: &sdl2::event::Event) {
-        use sdl2::Event;
+        use sdl2::event::Event;
         match ev {
             Event::KeyDown {
                 keycode: Some(sdl_key),
@@ -281,6 +283,7 @@ impl Keyboard {
     }
 }
 
+/// Lifecycle (rokol backend)
 #[cfg(feature = "use-rokol")]
 impl Keyboard {
     pub fn event(&mut self, ev: &rokol::app::Event) {
@@ -305,7 +308,7 @@ impl Keyboard {
 
 impl Keyboard {
     pub fn on_end_frame(&mut self) {
-        self.snaps.b.bits = self.snaps.a.bits;
+        self.states.b.bits = self.states.a.bits;
     }
 
     fn on_key_down(&mut self, external_key: ExternalKey) {
@@ -314,7 +317,7 @@ impl Keyboard {
             None => return,
         };
 
-        self.snaps.a.on_key_down(xdl_key);
+        self.states.a.on_key_down(xdl_key);
     }
 
     fn on_key_up(&mut self, external_key: ExternalKey) {
@@ -323,7 +326,7 @@ impl Keyboard {
             None => return,
         };
 
-        self.snaps.a.on_key_up(xdl_key);
+        self.states.a.on_key_up(xdl_key);
     }
 }
 
@@ -409,7 +412,7 @@ impl KeyboardStateSnapshot {
 
 /// Generated key translation for Rust-SDL2
 #[cfg(feature = "use-sdl2")]
-fn gen_key_translation() -> HashMap<sdl2::event::Keycode, Key> {
+fn gen_key_translation() -> HashMap<sdl2::keyboard::Keycode, Key> {
     pub use sdl2::{
         event::Event,
         keyboard::{Keycode, Mod, Scancode},
@@ -499,14 +502,14 @@ fn gen_key_translation() -> HashMap<sdl2::event::Keycode, Key> {
         (Keycode::Down, Key::Down),
         (Keycode::Left, Key::Left),
         (Keycode::Right, Key::Right),
-        (Keycode::LAlt, Key::LeftAlt),
-        (Keycode::RAlt, Key::RightAlt),
-        (Keycode::LCtrl, Key::LeftControl),
-        (Keycode::RCtrl, Key::RightControl),
-        (Keycode::LGui, Key::LeftWindows),
-        (Keycode::RGui, Key::RightWindows),
-        (Keycode::LShift, Key::LeftShift),
-        (Keycode::RShift, Key::RightShift),
+        (Keycode::LAlt, Key::LAlt),
+        (Keycode::RAlt, Key::RAlt),
+        (Keycode::LCtrl, Key::LCtrl),
+        (Keycode::RCtrl, Key::RCtrl),
+        (Keycode::LGui, Key::LMeta),
+        (Keycode::RGui, Key::RMeta),
+        (Keycode::LShift, Key::LShift),
+        (Keycode::RShift, Key::RShift),
         (Keycode::Application, Key::Apps),
         (Keycode::Slash, Key::OemQuestion),
         (Keycode::Backslash, Key::OemBackslash),
@@ -677,6 +680,6 @@ fn gen_key_translation() -> HashMap<rokol::app::Key, Key> {
 }
 
 #[cfg(not(any(feature = "use-sdl2", feature = "use-rokol")))]
-fn gen_key_translation() -> HashMap<Keycode, Key> {
+fn gen_key_translation() -> HashMap<ExternalKey, Key> {
     unimplemented!()
 }

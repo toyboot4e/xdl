@@ -17,15 +17,15 @@ Lifecycle types need to be `update`d when you update your game.
 
 # Coordinate system
 
-X axis goes from left to right. Y axis goes from up to down. If not.. sorry!
+X axis goes from left to right. Y axis goes from up to down. If it doesn't match your needs.. sorry!
 
 # Priority
 
 Latest inputs always come as current state.
 
-# TODOs
+# serde support
 
-* handle modifier keys
+TODO: add RON examples
 */
 
 use std::time::Duration;
@@ -221,7 +221,7 @@ impl InputBundle {
                 ($key:expr) => {
                     is_pressed &= input.kbd.is_key_pressed($key);
                     is_down &= input.kbd.is_key_down($key);
-                    is_down_prev |= input.kbd.snaps.b.is_down($key);
+                    is_down_prev |= input.kbd.states.b.is_down($key);
                 };
             }
             _add!(entry.key);

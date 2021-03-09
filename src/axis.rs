@@ -1,7 +1,13 @@
-//! Primitive axis types
+/*!
+Primitive axis types
+*/
+
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 /// Pos | Neg | Neutral
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "use-serde", derive(Serialize, Deserialize))]
 pub enum Sign {
     /// Right | Down
     Pos,
@@ -36,6 +42,14 @@ impl Sign {
         }
     }
 
+    pub fn to_f32(&self) -> f32 {
+        match self {
+            Self::Pos => 1.0,
+            Self::Neg => -1.0,
+            Self::Neutral => 0.0,
+        }
+    }
+
     pub fn to_isize(&self) -> isize {
         match self {
             Self::Pos => 1,
@@ -63,8 +77,9 @@ impl Sign {
     }
 }
 
-/// One of the four directions: N, E, S, W
+/// N | E | S | W
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "use-serde", derive(Serialize, Deserialize))]
 pub enum Dir4 {
     N,
     E,
@@ -123,8 +138,9 @@ impl Dir4 {
     }
 }
 
-/// One of the eight directions: N, NE, E, SE, ..
+/// N | NE | E | SE | S | SW | W | NW
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "use-serde", derive(Serialize, Deserialize))]
 pub enum Dir8 {
     N = 0,
     NE = 1,
@@ -188,6 +204,10 @@ impl Dir8 {
 
     pub fn signs_i64(&self) -> [i64; 2] {
         [self.x_sign().to_i64(), self.y_sign().to_i64()]
+    }
+
+    pub fn signs_f32(&self) -> [f32; 2] {
+        [self.x_sign().to_f32(), self.y_sign().to_f32()]
     }
 
     pub fn signs_isize(&self) -> [isize; 2] {
