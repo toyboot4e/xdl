@@ -1,6 +1,6 @@
 [package]
 name = "xdl"
-version = "0.1.7"
+version = "0.2.0"
 authors = ["toyboot4e <toyboot4e@gmail.com>"]
 edition = "2018"
 license = "MIT"
@@ -14,5 +14,5 @@ num_enum = "0.5.1"
 
 serde = { version = "1.0.120", features = ["derive"], optional = true }
 sdl2 = { version = "^0.34.3", optional = true }
-rokol = { path = "../rokol", features = ["impl-app"], optional = true, default-features = false }
+rokol = { path = "../rokol", version = "0.2.2", features = ["impl-app"], optional = true }
 

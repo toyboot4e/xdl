@@ -165,7 +165,7 @@ pub struct KeyEntry {
 }
 
 fn is_false(b: &bool) -> bool {
-    !b
+    *b == false
 }
 
 impl From<Key> for KeyEntry {

@@ -17,14 +17,13 @@ mod dummy {
     pub type ExternalKey = u32;
     pub type Event = ();
 
-    use crate::input::{keyboard::Key, Input};
+    use crate::input::{
+        keyboard::{Key, Keyboard},
+        Input,
+    };
     use std::collections::HashMap;
 
     impl Input {
-        pub fn new() -> Self {
-            unimplemented!()
-        }
-
         pub fn event(&mut self, _ev: &Event) {
             unimplemented!()
         }
@@ -39,7 +38,7 @@ mod dummy {
     }
 
     impl Keyboard {
-        pub fn event(&mut self, ev: &Event) {
+        pub fn event(&mut self, _ev: &Event) {
             unimplemented!()
         }
     }
