@@ -1,33 +1,24 @@
-//! XDL: An extensional input layer on top of Rust-SDL2
-//!
-//! Port of FNA input module + Virtual input.
-//!
-//! Intended for games with orthoghogonal grid maps.
-//!
-//! # Getting started
-//!
-//! Create [`Input`] with raw SDL window and manage the lifecycle.
-//!
-//! See [`vi`] module for virtual input.
-//!
-//! # WIP
-//!
-//! * done: keyboard input
-//! * WIP: mouse input
-//! * WIP: gamepad
-//! * not started: touch input
+/*!
+Input state backed by Rust-SDL2, `rokol::app` or your implementation
 
-pub use num_enum;
-pub use sdl2;
+# Getting started
 
-pub mod axis;
+Create [`Input`] and manage the lifecycle. See [`vi`] module for virtual input.
+
+TODO: mouse, gamepad, touch
+*/
+
 pub mod utils;
 pub mod vi;
 
+mod axis;
 mod input;
+mod platform;
 
-pub use crate::input::{
-    keyboard::{Key, Keyboard},
-    mouse::{Mouse, MouseInput},
-    Input,
+pub use crate::{
+    axis::*,
+    input::{
+        keyboard::{Key, Keyboard},
+        Input,
+    },
 };

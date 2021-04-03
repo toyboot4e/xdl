@@ -1,49 +1,65 @@
-//! Virtual input, bundles of input states
-//!
-//! # About
-//!
-//! Virtual input is good for typical input abstraction. For example, your "select key" may be any
-//! of enter, space, a gamepad button or even left click. Then the virtual input is perfect for
-//! bundling them.
-//!
-//! However, they are not generic enough. For example, you might want to handle left click in a
-//! different way from enter key. Then you have to build your custom input system like UI commands,
-//! maybe using virtual input.
-//!
-//! # Lifecycle
-//!
-//! Lifecycle types need to be `update`d when you update your game.
-//!
-//! # Coordinate system
-//!
-//! X axis goes from left to right. Y axis goes from up to down. If not.. sorry!
-//!
-//! # Priority
-//!
-//! Latest inputs always come as current state.
+/*!
+Virtual input, bundles of input states
 
-use ::std::time::Duration;
+# About
+
+Virtual input is good for typical input abstraction. For example, your "select key" may be any
+of enter, space, a gamepad button or even left click. Then the virtual input is perfect for
+bundling them.
+
+However, they are not generic enough. For example, you might want to handle left click in a
+different way from enter key. Then you have to build your custom input system like UI commands,
+maybe using virtual input.
+
+# Lifecycle
+
+Lifecycle types need to be `update`d when you update your game.
+
+# Coordinate system
+
+X axis goes from left to right. Y axis goes from up to down. If it doesn't match your needs.. sorry!
+
+# Priority
+
+Latest inputs always come as current state.
+
+# serde support
+
+TODO: add RON examples
+*/
+
+use std::time::Duration;
 
 use crate::{
     axis::{Dir4, Dir8, Sign},
-    Input, Key, MouseInput,
+    Input, Key,
 };
+
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 /// Key repeat settings
 #[derive(Debug, Clone, Copy)]
-pub enum KeyRepeat {
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(untagged))]
+pub enum KeyRepeatConfig {
     Repeat { first: Duration, multi: Duration },
-    None,
+    NoRepeat,
+}
+
+impl Default for KeyRepeatConfig {
+    fn default() -> Self {
+        Self::NoRepeat
+    }
 }
 
 /// Constructors
-impl KeyRepeat {
+impl KeyRepeatConfig {
     pub fn repeat(first: Duration, multi: Duration) -> Self {
-        KeyRepeat::Repeat { first, multi }
+        KeyRepeatConfig::Repeat { first, multi }
     }
 
     pub fn no_repeat() -> Self {
-        KeyRepeat::None
+        KeyRepeatConfig::NoRepeat
     }
 }
 
@@ -61,9 +77,10 @@ enum RawButtonState {
     Released,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 struct KeyRepeatState {
-    repeat: KeyRepeat,
+    /// Key repeat configuration
+    config: KeyRepeatConfig,
     /// Loops when it repeats
     accum_repeat: Duration,
     /// Does not loop
@@ -73,9 +90,9 @@ struct KeyRepeatState {
 }
 
 impl KeyRepeatState {
-    pub fn new(repeat: KeyRepeat) -> Self {
+    pub fn new(repeat: KeyRepeatConfig) -> Self {
         Self {
-            repeat,
+            config: repeat,
             accum_repeat: Duration::new(0, 0),
             accum_down: Duration::new(0, 0),
             is_on_first_repeat: false,
@@ -86,7 +103,7 @@ impl KeyRepeatState {
 /// Lifecycle
 impl KeyRepeatState {
     /// Returns if it's repeating or not
-    fn update(&mut self, state: RawButtonState, delta: Duration) -> bool {
+    fn update(&mut self, state: RawButtonState, dt: Duration) -> bool {
         match state {
             RawButtonState::Up | RawButtonState::Released => {
                 self.accum_repeat = Duration::new(0, 0);
@@ -102,9 +119,9 @@ impl KeyRepeatState {
             }
             // Down state may be repeating
             RawButtonState::Down => {
-                let repeat_duration = match self.repeat {
-                    KeyRepeat::None => return false,
-                    KeyRepeat::Repeat { first, multi } => {
+                let repeat_duration = match self.config {
+                    KeyRepeatConfig::NoRepeat => return false,
+                    KeyRepeatConfig::Repeat { first, multi } => {
                         if self.is_on_first_repeat {
                             first
                         } else {
@@ -113,8 +130,8 @@ impl KeyRepeatState {
                     }
                 };
 
-                self.accum_repeat += delta;
-                self.accum_down += delta;
+                self.accum_repeat += dt;
+                self.accum_down += dt;
 
                 let mut is_repeating = false;
 
@@ -131,11 +148,54 @@ impl KeyRepeatState {
     }
 }
 
+/// [`Key`] with optionally modifier keys
+///
+/// TODO: don't use `Vec` while keeping prettier `serde` with RON (untagged enum fails to
+/// desrialize)
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct KeyEntry {
+    key: Key,
+    #[cfg_attr(feature = "serde", serde(default, skip_serializing_if = "is_false"))]
+    ctrl: bool,
+    #[cfg_attr(feature = "serde", serde(default, skip_serializing_if = "is_false"))]
+    shift: bool,
+    #[cfg_attr(feature = "serde", serde(default, skip_serializing_if = "is_false"))]
+    meta: bool,
+}
+
+fn is_false(b: &bool) -> bool {
+    !b
+}
+
+impl From<Key> for KeyEntry {
+    fn from(key: Key) -> KeyEntry {
+        Self {
+            key,
+            ctrl: false,
+            shift: false,
+            meta: false,
+        }
+    }
+}
+
+impl KeyEntry {
+    pub fn key(key: Key) -> Self {
+        Self {
+            key,
+            ctrl: false,
+            shift: false,
+            meta: false,
+        }
+    }
+}
+
 /// Set of any kind of inputs
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct InputBundle {
-    pub keys: Vec<Key>,
-    pub mouse: Vec<MouseInput>,
+    pub keys: Vec<KeyEntry>,
+    // pub mouse: Vec<MouseInput>,
 }
 
 impl InputBundle {
@@ -143,21 +203,46 @@ impl InputBundle {
         let mut is_any_down = false;
         let mut is_any_released = false;
 
-        for key in self.keys.iter().map(|k| k.clone()) {
-            if input.kbd.is_key_pressed(key) {
+        for entry in self.keys.iter() {
+            let mut is_pressed = true;
+            let mut is_down = true;
+            let mut is_down_prev = true;
+
+            macro_rules! _add {
+                ($key:expr) => {
+                    is_pressed &= input.kbd.is_key_pressed($key);
+                    is_down &= input.kbd.is_key_down($key);
+                    is_down_prev |= input.kbd.states.b.is_down($key);
+                };
+            }
+            _add!(entry.key);
+            if entry.ctrl {
+                _add!(Key::LCtrl);
+                _add!(Key::RCtrl);
+            }
+            if entry.shift {
+                _add!(Key::LShift);
+                _add!(Key::RShift);
+            }
+            if entry.meta {
+                _add!(Key::LMeta);
+                _add!(Key::RMeta);
+            }
+
+            if is_pressed {
                 return RawButtonState::Pressed;
             }
-            is_any_down |= input.kbd.is_key_down(key);
-            is_any_released |= input.kbd.is_key_released(key);
+            is_any_down |= is_down;
+            is_any_released |= is_down_prev && is_down;
         }
 
-        for m in self.mouse.iter().map(|m| m.clone()) {
-            if input.mouse.is_pressed(m) {
-                return RawButtonState::Pressed;
-            }
-            is_any_down |= input.mouse.is_down(m);
-            is_any_released |= input.mouse.is_released(m);
-        }
+        // for m in self.mouse.iter().map(|m| m.clone()) {
+        //     if input.mouse.is_pressed(m) {
+        //         return RawButtonState::Pressed;
+        //     }
+        //     is_any_down |= input.mouse.is_down(m);
+        //     is_any_released |= input.mouse.is_released(m);
+        // }
 
         if is_any_down {
             RawButtonState::Down
@@ -173,6 +258,7 @@ impl InputBundle {
 
 /// Down | Up | Pressed | Repeating | Released
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum StrictButtonState {
     Down,
     Up,
@@ -181,21 +267,67 @@ pub enum StrictButtonState {
     Released,
 }
 
+#[cfg(feature = "serde")]
+pub mod button_serde_with {
+    //! `serde` `Button` as [`InputBundle`]. NOTE: `KeyRepeatState` will be `skip`ped
+
+    use super::*;
+    use serde::{
+        de::{Deserialize, Deserializer},
+        ser::{Serialize, Serializer},
+    };
+
+    pub fn serialize<S>(value: &Button, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        value.input.serialize(serializer)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Button, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let input = InputBundle::deserialize(deserializer)?;
+        Ok(Button::new(input, KeyRepeatConfig::NoRepeat))
+    }
+}
+
 /// Input bundle with repeat state
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Button {
-    pub bundle: InputBundle,
+    pub input: InputBundle,
     pub state: StrictButtonState,
+    #[cfg_attr(feature = "serde", serde(skip))]
     repeat: KeyRepeatState,
 }
 
 impl Button {
-    pub fn new(bundle: InputBundle, repeat: KeyRepeat) -> Self {
+    pub fn new(bundle: InputBundle, repeat_cfg: KeyRepeatConfig) -> Self {
         Self {
-            bundle,
+            input: bundle,
             state: StrictButtonState::Up,
-            repeat: KeyRepeatState::new(repeat),
+            repeat: KeyRepeatState::new(repeat_cfg),
         }
+    }
+
+    pub fn set_repeat_config(&mut self, cfg: KeyRepeatConfig) {
+        self.repeat = KeyRepeatState::new(cfg);
+    }
+
+    pub fn is_down(&self) -> bool {
+        matches!(
+            self.state,
+            StrictButtonState::Down | StrictButtonState::Pressed | StrictButtonState::Repeating
+        )
+    }
+
+    pub fn is_pressed(&self) -> bool {
+        matches!(
+            self.state,
+            StrictButtonState::Pressed | StrictButtonState::Repeating
+        )
     }
 
     /// How long it's been down
@@ -206,9 +338,11 @@ impl Button {
 
 /// Lifecycle
 impl Button {
-    pub fn update(&mut self, input: &Input, delta: Duration) {
-        let state = self.bundle.state(input);
-        let is_repeating = self.repeat.update(state, delta);
+    pub fn update(&mut self, input: &Input, dt: Duration) {
+        let state = self.input.state(input);
+
+        let is_repeating = self.repeat.update(state, dt);
+
         self.state = if is_repeating {
             StrictButtonState::Repeating
         } else {
@@ -223,48 +357,34 @@ impl Button {
 }
 
 // --------------------------------------------------------------------------------
-// Semantic buttons
+// Higher-level buttons
 
 /// Neg | Pos | Neutral
+///
+/// WARNING: It doesn't store key repeat configuration on `serde`.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct AxisButton {
     /// Positive input
+    #[cfg_attr(feature = "serde", serde(with = "button_serde_with"))]
     pub pos: Button,
     /// Negative input
+    #[cfg_attr(feature = "serde", serde(with = "button_serde_with"))]
     pub neg: Button,
 }
 
 /// Lifecycle
 impl AxisButton {
-    pub fn update(&mut self, input: &Input, delta: Duration) {
-        self.pos.update(input, delta);
-        self.neg.update(input, delta);
+    pub fn update(&mut self, input: &Input, dt: Duration) {
+        self.pos.update(input, dt);
+        self.neg.update(input, dt);
     }
 }
 
 impl AxisButton {
-    /// Down | Pressed | Repeating
-    fn is_down(state: StrictButtonState) -> bool {
-        matches!(
-            state,
-            StrictButtonState::Down | StrictButtonState::Pressed | StrictButtonState::Repeating
-        )
-    }
-
-    /// Pressed | Repeating
-    fn is_pressed(state: StrictButtonState) -> bool {
-        matches!(
-            state,
-            StrictButtonState::Pressed | StrictButtonState::Repeating
-        )
-    }
-
     /// Selects down sign pressed lately
     pub fn sign_down(&self) -> Sign {
-        let p_down = Self::is_down(self.pos.state);
-        let n_down = Self::is_down(self.neg.state);
-
-        match [p_down, n_down] {
+        match [self.pos.is_down(), self.neg.is_down()] {
             [true, true] => {
                 if self.pos.repeat.accum_down <= self.neg.repeat.accum_down {
                     Sign::Pos
@@ -280,18 +400,16 @@ impl AxisButton {
 
     /// Selects pressed sign pressed lately
     pub fn sign_pressed(&self) -> Sign {
-        let p_down = Self::is_down(self.pos.state);
-        let n_down = Self::is_down(self.neg.state);
-        match [p_down, n_down] {
+        match [self.pos.is_down(), self.neg.is_down()] {
             [true, true] => {
                 if self.pos.repeat.accum_down <= self.neg.repeat.accum_down {
-                    if Self::is_pressed(self.pos.state) {
+                    if self.pos.is_pressed() {
                         Sign::Pos
                     } else {
                         Sign::Neutral
                     }
                 } else {
-                    if Self::is_pressed(self.neg.state) {
+                    if self.neg.is_pressed() {
                         Sign::Neg
                     } else {
                         Sign::Neutral
@@ -299,14 +417,14 @@ impl AxisButton {
                 }
             }
             [true, false] => {
-                if Self::is_pressed(self.pos.state) {
+                if self.pos.is_pressed() {
                     Sign::Pos
                 } else {
                     Sign::Neutral
                 }
             }
             [false, true] => {
-                if Self::is_pressed(self.neg.state) {
+                if self.neg.is_pressed() {
                     Sign::Neg
                 } else {
                     Sign::Neutral
@@ -325,51 +443,10 @@ impl AxisButton {
 
 /// [x, y] axes translated as direction
 ///
-/// [x, y] components are "mixed" to make direction. For example, [1, 1] is interpreted as
+/// [x, y] components are "mixed" to make directions. For example, [1, 1] is interpreted as
 /// south-east.
-///
-/// # Example
-///
-/// ```rust
-/// use std::time::Duration;
-///
-/// use xdl::{
-///     vi::{AxisDirButton, InputBundle, KeyRepeat},
-///     Key,
-/// };
-///
-/// let dir = AxisDirButton::new(
-///     KeyRepeat::Repeat {
-///         first: Duration::from_nanos(1_000_000_000 / 60 * 8),
-///         multi: Duration::from_nanos(1_000_000_000 / 60 * 6),
-///     },
-///     [
-///          // positive input in x axis:
-///          InputBundle {
-///              keys: vec![Key::D, Key::Right],
-///              ..Default::default()
-///          },
-///          // negative input in x axis:
-///          InputBundle {
-///              keys: vec![Key::A, Key::Left],
-///              ..Default::default()
-///          },
-///     ],
-///     [
-///          // positive input in y axis:
-///          InputBundle {
-///              keys: vec![Key::S, Key::Down],
-///              ..Default::default()
-///          },
-///          // negative input in y axis:
-///          InputBundle {
-///              keys: vec![Key::W, Key::Up],
-///              ..Default::default()
-///          },
-///     ],
-/// );
-/// ```
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct AxisDirButton {
     x: AxisButton,
     y: AxisButton,
@@ -380,7 +457,7 @@ impl AxisDirButton {
     ///
     /// Makes sure that the key repeat configuration is shared among buttons (while the states are
     /// not shared).
-    pub fn new(repeat: KeyRepeat, xs: [InputBundle; 2], ys: [InputBundle; 2]) -> Self {
+    pub fn new(repeat: KeyRepeatConfig, xs: [InputBundle; 2], ys: [InputBundle; 2]) -> Self {
         let x_pos = Button::new(xs[0].clone(), repeat);
         let x_neg = Button::new(xs[1].clone(), repeat);
         let y_pos = Button::new(ys[0].clone(), repeat);
@@ -401,19 +478,44 @@ impl AxisDirButton {
 
 /// Lifecycle
 impl AxisDirButton {
-    pub fn update(&mut self, input: &Input, delta: Duration) {
-        self.x.update(input, delta);
-        self.y.update(input, delta);
+    pub fn update(&mut self, input: &Input, dt: Duration) {
+        self.x.update(input, dt);
+        self.y.update(input, dt);
     }
 }
 
 impl AxisDirButton {
-    /// Creates direction mixing axis inputs
-    pub fn to_dir4(&self) -> Option<Dir4> {
+    /// Creates a directional output mixing axis inputs
+    pub fn dir4_down(&self) -> Option<Dir4> {
         // mix down inputs (not pressed inputs)
         let x = self.x.sign_down().to_i8();
         let y = self.y.sign_down().to_i8();
+        self.dir4(x, y)
+    }
 
+    /// Creates a directional output mixing axis inputs
+    pub fn dir4_pressed(&self) -> Option<Dir4> {
+        // mix down inputs (not pressed inputs)
+        let x = self.x.sign_pressed().to_i8();
+        let y = self.y.sign_pressed().to_i8();
+        self.dir4(x, y)
+    }
+
+    /// Creates a directional output mixing axis inputs
+    pub fn dir8_down(&self) -> Option<Dir8> {
+        let x = self.x.sign_down().to_i8();
+        let y = self.y.sign_down().to_i8();
+        self.dir8(x, y)
+    }
+
+    /// Creates a directional output mixing axis inputs
+    pub fn dir8_pressed(&self) -> Option<Dir8> {
+        let x = self.x.sign_pressed().to_i8();
+        let y = self.y.sign_pressed().to_i8();
+        self.dir8(x, y)
+    }
+
+    fn dir4(&self, x: i32, y: i32) -> Option<Dir4> {
         Some(match [x, y] {
             [0, 0] => return None,
             // clockwise
@@ -440,10 +542,7 @@ impl AxisDirButton {
         })
     }
 
-    pub fn to_dir8(&self) -> Option<Dir8> {
-        let x = self.x.sign_pressed().to_i8();
-        let y = self.y.sign_pressed().to_i8();
-
+    fn dir8(&self, x: i32, y: i32) -> Option<Dir8> {
         Some(match [x, y] {
             [0, 0] => return None,
             // clockwise
@@ -455,7 +554,7 @@ impl AxisDirButton {
             [-1, 1] => Dir8::SW,
             [-1, 0] => Dir8::W,
             [-1, -1] => Dir8::NW,
-            _ => unreachable!(),
+            _ => unreachable!("unable to create Dir8 from virtual input"),
         })
     }
 }

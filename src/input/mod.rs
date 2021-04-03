@@ -1,41 +1,27 @@
+#![allow(dead_code)]
+
 pub mod keyboard;
-pub mod mouse;
+// pub mod mouse;
 
-use ::sdl2::event::Event;
-
-use self::{keyboard::Keyboard, mouse::Mouse};
+use self::keyboard::Keyboard;
 
 /// All of the input states
 #[derive(Debug, Clone)]
 pub struct Input {
     pub kbd: Keyboard,
-    pub mouse: Mouse,
+    // pub mouse: Mouse,
 }
 
 impl Input {
-    pub fn new(win: *mut sdl2::sys::SDL_Window) -> Self {
+    pub fn new() -> Self {
         Self {
             kbd: Keyboard::default(),
-            mouse: Mouse::new(win),
         }
     }
-}
 
-/// Lifecycle
-impl Input {
-    /// Event pump
-    pub fn event(&mut self, ev: &Event) {
-        self.kbd.event(ev);
-        self.mouse.event(ev);
-    }
-
-    pub fn update(&mut self) {
-        self.mouse.update();
-    }
-
-    pub fn on_end_frame(&mut self) {
-        // swap buffers
-        self.kbd.on_end_frame();
-        self.mouse.on_end_frame();
+    /// Resets all the states
+    pub fn clear(&mut self) {
+        self.kbd.clear();
+        // self.mouse.clear();
     }
 }
