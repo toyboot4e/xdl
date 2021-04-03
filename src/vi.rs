@@ -40,7 +40,7 @@ use serde::{Deserialize, Serialize};
 
 /// Key repeat settings
 #[derive(Debug, Clone, Copy)]
-#[cfg_attr(feature = "use-serde", derive(Serialize, Deserialize), serde(untagged))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(untagged))]
 pub enum KeyRepeatConfig {
     Repeat { first: Duration, multi: Duration },
     NoRepeat,
@@ -153,23 +153,14 @@ impl KeyRepeatState {
 /// TODO: don't use `Vec` while keeping prettier `serde` with RON (untagged enum fails to
 /// desrialize)
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "use-serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct KeyEntry {
     key: Key,
-    #[cfg_attr(
-        feature = "use-serde",
-        serde(default, skip_serializing_if = "is_false")
-    )]
+    #[cfg_attr(feature = "serde", serde(default, skip_serializing_if = "is_false"))]
     ctrl: bool,
-    #[cfg_attr(
-        feature = "use-serde",
-        serde(default, skip_serializing_if = "is_false")
-    )]
+    #[cfg_attr(feature = "serde", serde(default, skip_serializing_if = "is_false"))]
     shift: bool,
-    #[cfg_attr(
-        feature = "use-serde",
-        serde(default, skip_serializing_if = "is_false")
-    )]
+    #[cfg_attr(feature = "serde", serde(default, skip_serializing_if = "is_false"))]
     meta: bool,
 }
 
@@ -201,7 +192,7 @@ impl KeyEntry {
 
 /// Set of any kind of inputs
 #[derive(Debug, Clone, Default)]
-#[cfg_attr(feature = "use-serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct InputBundle {
     pub keys: Vec<KeyEntry>,
     // pub mouse: Vec<MouseInput>,
@@ -267,7 +258,7 @@ impl InputBundle {
 
 /// Down | Up | Pressed | Repeating | Released
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(feature = "use-serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum StrictButtonState {
     Down,
     Up,
@@ -276,7 +267,7 @@ pub enum StrictButtonState {
     Released,
 }
 
-#[cfg(feature = "use-serde")]
+#[cfg(feature = "serde")]
 pub mod button_serde_with {
     //! `serde` `Button` as [`InputBundle`]. NOTE: `KeyRepeatState` will be `skip`ped
 
@@ -304,11 +295,11 @@ pub mod button_serde_with {
 
 /// Input bundle with repeat state
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "use-serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Button {
     pub input: InputBundle,
     pub state: StrictButtonState,
-    #[serde(skip)]
+    #[cfg_attr(feature = "serde", serde(skip))]
     repeat: KeyRepeatState,
 }
 
@@ -372,13 +363,13 @@ impl Button {
 ///
 /// WARNING: It doesn't store key repeat configuration on `serde`.
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "use-serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct AxisButton {
     /// Positive input
-    #[cfg_attr(feature = "use-serde", serde(with = "button_serde_with"))]
+    #[cfg_attr(feature = "serde", serde(with = "button_serde_with"))]
     pub pos: Button,
     /// Negative input
-    #[cfg_attr(feature = "use-serde", serde(with = "button_serde_with"))]
+    #[cfg_attr(feature = "serde", serde(with = "button_serde_with"))]
     pub neg: Button,
 }
 
@@ -455,7 +446,7 @@ impl AxisButton {
 /// [x, y] components are "mixed" to make directions. For example, [1, 1] is interpreted as
 /// south-east.
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "use-serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct AxisDirButton {
     x: AxisButton,
     y: AxisButton,
