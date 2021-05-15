@@ -1,7 +1,10 @@
 //! rokol backend
 
+use crate::input::{
+    keyboard::{Key, Keyboard},
+    Input,
+};
 use std::collections::HashMap;
-use crate::input::{Input, keyboard::{Key, Keyboard}};
 
 pub type ExternalKey = rokol::app::Key;
 pub type Event = rokol::app::Event;

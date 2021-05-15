@@ -14,5 +14,5 @@ num_enum = "0.5.1"
 
 serde = { version = "1.0.120", features = ["derive"], optional = true }
 sdl2 = { version = "^0.34.3", optional = true }
-rokol = { path = "../rokol", version = "0.2.2", features = ["impl-app"], optional = true }
+rokol = { path = "../rokol/rokol", version = "0.2.2", features = ["impl-app"], optional = true }
 
