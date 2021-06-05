@@ -186,6 +186,62 @@ pub enum Key {
     OemEnlW = 0xf4,
 }
 
+impl Key {
+    /// a-z or symbol
+    pub fn from_char(c: char) -> Option<Self> {
+        let key = match c {
+            'a' => Key::A,
+            'b' => Key::B,
+            'c' => Key::C,
+            'd' => Key::D,
+            'e' => Key::E,
+            'f' => Key::F,
+            'g' => Key::G,
+            'h' => Key::H,
+            'i' => Key::I,
+            'j' => Key::J,
+            'k' => Key::K,
+            'l' => Key::L,
+            'm' => Key::M,
+            'n' => Key::N,
+            'o' => Key::O,
+            'p' => Key::P,
+            'q' => Key::Q,
+            'r' => Key::R,
+            's' => Key::S,
+            't' => Key::T,
+            'u' => Key::U,
+            'v' => Key::V,
+            'w' => Key::W,
+            'x' => Key::X,
+            'y' => Key::Y,
+            'z' => Key::Z,
+            //
+            ' ' => Key::Space,
+            '+' => Key::Plus,
+            '^' => Key::Minus,
+            '*' => Key::Star,
+            '/' => Key::Slash,
+            '~' => Key::OemTilde,
+            '.' => Key::OemPeriod,
+            '?' => Key::OemQuestion,
+            ';' => Key::OemSemicolon,
+            '|' => Key::OemPipe,
+            '{' => Key::OemOpenBrackets,
+            '}' => Key::OemCloseBrackets,
+            // TODO:
+            // ':' => Key::Colon,
+            // '\\' => Key::OemBackSlash,
+            // '(' => Key::OpenParen,
+            // ')' => Key::OpenParen,
+            // '=' => Key::Equal,
+            // '!' => Key::Bang,
+            _ => return None,
+        };
+        Some(key)
+    }
+}
+
 /// All of the keyboard states
 #[derive(Debug, Clone)]
 pub struct Keyboard {
