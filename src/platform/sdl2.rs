@@ -174,7 +174,6 @@ pub fn key_translation() -> HashMap<sdl2::keyboard::Keycode, Key> {
         (Keycode::PrintScreen, Key::PrintScreen),
         (Keycode::Quote, Key::OemQuotes),
         (Keycode::ScrollLock, Key::Scroll),
-        // FIXME: support colon?
         (Keycode::Semicolon, Key::OemSemicolon),
         (Keycode::Sleep, Key::Sleep),
         (Keycode::Tab, Key::Tab),
