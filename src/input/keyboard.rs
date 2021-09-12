@@ -18,6 +18,7 @@ use crate::{platform::ExternalKey, utils::Double};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, TryFromPrimitive)]
 #[repr(u32)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "igri", derive(igri::Inspect))]
 pub enum Key {
     /// TODO: delete?
     None = 0,

@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 /// Pos | Neg | Neutral
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "igri", derive(igri::Inspect))]
 pub enum Sign {
     /// Right | Down
     Pos,
@@ -80,6 +81,7 @@ impl Sign {
 /// N | E | S | W
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "igri", derive(igri::Inspect))]
 pub enum Dir4 {
     N,
     E,
@@ -141,6 +143,7 @@ impl Dir4 {
 /// N | NE | E | SE | S | SW | W | NW
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "igri", derive(igri::Inspect))]
 pub enum Dir8 {
     N = 0,
     NE = 1,
