@@ -149,9 +149,6 @@ impl KeyRepeatState {
 }
 
 /// [`Key`] with optionally modifier keys
-///
-/// TODO: don't use `Vec` while keeping prettier `serde` with RON (untagged enum fails to
-/// desrialize)
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct KeyEntry {
@@ -164,6 +161,7 @@ pub struct KeyEntry {
     meta: bool,
 }
 
+#[cfg(feature = "serde")]
 fn is_false(b: &bool) -> bool {
     *b == false
 }
@@ -209,24 +207,24 @@ impl InputBundle {
             let mut is_down_prev = true;
 
             macro_rules! _add {
-                ($key:expr) => {
-                    is_pressed &= input.kbd.is_key_pressed($key);
-                    is_down &= input.kbd.is_key_down($key);
-                    is_down_prev |= input.kbd.states.b.is_down($key);
+                ($($key:expr),+ $(,)?) => {
+                    $(
+                        is_pressed &= input.kbd.is_key_pressed($key);
+                        is_down &= input.kbd.is_key_down($key);
+                        is_down_prev |= input.kbd.states.b.is_down($key);
+                    )+
                 };
             }
+
             _add!(entry.key);
             if entry.ctrl {
-                _add!(Key::LCtrl);
-                _add!(Key::RCtrl);
+                _add!(Key::LCtrl, Key::RCtrl);
             }
             if entry.shift {
-                _add!(Key::LShift);
-                _add!(Key::RShift);
+                _add!(Key::LShift, Key::RShift);
             }
             if entry.meta {
-                _add!(Key::LMeta);
-                _add!(Key::RMeta);
+                _add!(Key::LMeta, Key::RMeta);
             }
 
             if is_pressed {
