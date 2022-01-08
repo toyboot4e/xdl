@@ -163,12 +163,6 @@ impl Keyboard {
 }
 
 impl Input {
-    pub fn new() -> Self {
-        Self {
-            kbd: Keyboard::default(),
-        }
-    }
-
     /// Event pump
     pub fn event(&mut self, ev: &rokol::app::Event) {
         self.kbd.event(ev);
