@@ -6,7 +6,7 @@ pub mod keyboard;
 use self::keyboard::Keyboard;
 
 /// All of the input states
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Input {
     pub kbd: Keyboard,
     // pub mouse: Mouse,
