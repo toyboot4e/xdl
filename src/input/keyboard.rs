@@ -5,16 +5,11 @@
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-use {
-    num_enum::TryFromPrimitive,
-    std::{collections::HashMap, convert::TryFrom},
-};
+use {num_enum::TryFromPrimitive, std::convert::TryFrom};
 
-use crate::{platform::ExternalKey, utils::Double};
+use crate::utils::Double;
 
 /// XDL keycode
-///
-/// Can be created from supported backend's keycode (`ExternalKey`)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, TryFromPrimitive)]
 #[repr(u32)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -246,43 +241,29 @@ impl Key {
 /// All of the keyboard states
 #[derive(Debug, Clone)]
 pub struct Keyboard {
-    /// External keycode to XDL keycode
-    e2x: HashMap<ExternalKey, Key>,
     pub(crate) states: Double<KeyboardStateSnapshot>,
 }
 
 impl Default for Keyboard {
     fn default() -> Self {
         Self {
-            e2x: crate::platform::key_translation(),
             states: Double::default(),
         }
     }
 }
 
+/// Lifecycle
 impl Keyboard {
     pub fn on_end_frame(&mut self) {
         self.states.b.bits = self.states.a.bits;
     }
 
-    /// Used to implement platform event listening function
-    pub(crate) fn on_key_down(&mut self, external_key: ExternalKey) {
-        let xdl_key = match self.e2x.get(&external_key) {
-            Some(key) => key.clone(),
-            None => return,
-        };
-
-        self.states.a.on_key_down(xdl_key);
+    pub(crate) fn on_key_down(&mut self, key: Key) {
+        self.states.a.on_key_down(key);
     }
 
-    /// Used to implement platform event listening function
-    pub(crate) fn on_key_up(&mut self, external_key: ExternalKey) {
-        let xdl_key = match self.e2x.get(&external_key) {
-            Some(key) => key.clone(),
-            None => return,
-        };
-
-        self.states.a.on_key_up(xdl_key);
+    pub(crate) fn on_key_up(&mut self, key: Key) {
+        self.states.a.on_key_up(key);
     }
 }
 

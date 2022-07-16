@@ -1,61 +1,76 @@
 //! Rust-SDL2 backend
 
-use crate::input::{
-    keyboard::{Key, Keyboard},
-    Input,
-};
 use std::collections::HashMap;
+
+use crate::{
+    input::{keyboard::Key, Input},
+    Backend,
+};
 
 pub type ExternalKey = sdl2::keyboard::Keycode;
 pub type Event = sdl2::event::Event;
 
-/// Lifecycle
-impl Keyboard {
-    pub fn event(&mut self, ev: &Event) {
+/// [`sdl2`] backend
+#[derive(Debug, Clone)]
+pub struct SdlBackend {
+    map: HashMap<sdl2::keyboard::Keycode, Key>,
+}
+
+impl Default for SdlBackend {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl SdlBackend {
+    pub fn new() -> Self {
+        Self {
+            map: self::create_key_translation(),
+        }
+    }
+
+    pub fn translate(&self, key: &ExternalKey) -> Option<Key> {
+        self.map.get(key).cloned()
+    }
+}
+
+impl Backend for SdlBackend {
+    type Event = Event;
+    type Key = ExternalKey;
+
+    fn on_event(&self, input: &mut Input, ev: &Self::Event) {
         use sdl2::event::Event;
+
         match ev {
             Event::KeyDown {
                 keycode: Some(sdl_key),
                 ..
             } => {
-                self.on_key_down(*sdl_key);
+                if let Some(key) = self.translate(sdl_key) {
+                    input.kbd.on_key_down(key);
+                }
             }
             Event::KeyUp {
                 keycode: Some(sdl_key),
                 ..
             } => {
-                self.on_key_up(*sdl_key);
+                if let Some(key) = self.translate(sdl_key) {
+                    input.kbd.on_key_up(key);
+                }
             }
             _ => {}
         }
     }
-}
 
-impl Input {
-    pub fn from_window(_win: *mut sdl2::sys::SDL_Window) -> Self {
-        Self {
-            kbd: Keyboard::default(),
-            // mouse: Mouse::new(win),
-        }
-    }
-
-    pub fn event(&mut self, ev: &sdl2::event::Event) {
-        self.kbd.event(ev);
-        // self.mouse.event(ev);
-    }
-
-    pub fn on_end_frame(&mut self) {
+    fn on_end_frame(&self, input: &mut Input) {
         // swap buffers
-        self.kbd.on_end_frame();
-        // self.mouse.on_end_frame();
+        input.kbd.on_end_frame();
+        // input.mouse.on_end_frame();
     }
 }
 
-pub fn key_translation() -> HashMap<sdl2::keyboard::Keycode, Key> {
-    pub use sdl2::{
-        event::Event,
-        keyboard::{Keycode, Mod, Scancode},
-    };
+fn create_key_translation() -> HashMap<sdl2::keyboard::Keycode, Key> {
+    use sdl2::keyboard::Keycode;
 
     [
         (Keycode::A, Key::A),
