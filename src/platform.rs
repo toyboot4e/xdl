@@ -7,12 +7,7 @@ mod sdl2;
 #[cfg(feature = "sdl2")]
 pub use self::sdl2::*;
 
-#[cfg(feature = "rokol")]
-mod rokol;
-#[cfg(feature = "rokol")]
-pub use self::rokol::*;
-
-#[cfg(not(any(feature = "sdl2", feature = "rokol")))]
+#[cfg(not(any(feature = "sdl2")))]
 mod dummy {
     pub type ExternalKey = u32;
     pub type Event = ();
@@ -44,5 +39,5 @@ mod dummy {
     }
 }
 
-#[cfg(not(any(feature = "sdl2", feature = "rokol")))]
+#[cfg(not(any(feature = "sdl2")))]
 pub use dummy::*;

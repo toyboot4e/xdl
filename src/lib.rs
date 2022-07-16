@@ -1,11 +1,13 @@
 /*!
-Input state backed by Rust-SDL2, `rokol::app` or your implementation
+Input states for Rust-SDL2 (or any other)
 
 # Getting started
 
 Create [`Input`] and manage the lifecycle. See [`vi`] module for virtual input.
 
-TODO: mouse, gamepad, touch
+# TODOs
+
+mouse, gamepad, touchpad, more virtual input, ..
 */
 
 pub mod utils;
